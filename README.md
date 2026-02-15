@@ -84,4 +84,34 @@ mazegen/generator.py:
 
 
 
+a_maze_ing.py:
+
+    - parse_config:
+
+        - parsing: le o ficheiro config.txt, extrair a chave e valor, valida se todas as chaves 
+          obrigatorias existem e mete num dicionario
+
+nota:
+    strip() - tira espacos, tabs e \n
+    ignora linhas vazias e comentarios
+    divide '=' apenas na primeira ocurencia
+    junta no dicionario:
+        ex:
+            "WIDTH": "20"
+
+
+         - REQUIRED:
+             lista  onde vai verificar as chaves obrigatorias
+
+            e verifica se alguma esta em falta
+
+
+
+      - sanitize_config:
+
+            - funcao serve para converter as strings em tipos reais: tipo bool, int, tuple
+              se ja existir um seed ele o usa caso contrari ele usa 42
+
+
+
 FRONT-END()
