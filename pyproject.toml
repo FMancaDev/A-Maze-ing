@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mazegen"
+version = "1.0.0"
+description = "Pacote de geracao de labirintos para a 42"
+authors = [{name = "Fodé Manca e Marcos Teixeira"}]
+requires-python = ">3.10"
+dependencies = []
