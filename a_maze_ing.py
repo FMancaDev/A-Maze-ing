@@ -65,7 +65,7 @@ def sanitize_config(raw_config: Dict[str, str]) -> Dict[str, Any]:
         sys.exit(1)
 
 
-if __name__ == "__main__":
+"""if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Uso: python3 a_maze_ing.py config.py")
         sys.exit(1)
@@ -74,4 +74,38 @@ if __name__ == "__main__":
     print("\nConfiguracao carregada com sucesso: ", config_data)
 
     clean_config = sanitize_config(config_data)
-    print("\nConfiguracao limpa(tudo convertido):", clean_config)
+    print("\nConfiguracao limpa(tudo convertido):", clean_config)"""
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("\nUso: python3 a_maze_ing.py config.txt")
+        sys.exit(1)
+
+    config_data = parse_config(sys.argv[1])
+    print("\nParsing: ", config_data)
+
+    clean_config = sanitize_config(config_data)
+    print("\nConveter em tipos reais: ", clean_config)
+
+    from mazegen.generator import MazeGenerator
+    mg = MazeGenerator(
+        clean_config["WIDTH"],
+        clean_config["HEIGHT"],
+        clean_config["SEED"]
+    )
+
+    mg.generate(clean_config["PERFECT"])
+
+    # Mostra o grid no terminal
+    print("\nLabirinto (grid hexadecimal):")
+    for row in mg.grid:
+        print(' '.join(f"{cell:X}" for cell in row))
+
+    # Escreve o labirinto no maze.txt
+    output_file = clean_config["OUTPUT_FILE"]
+    with open(output_file, 'w') as f:
+        for row in mg.grid:
+            f.write(''.join(f"{cell:X}" for cell in row) + '\n')
+
+    print(f"\nLabirinto escrito com sucesso em {output_file}")
