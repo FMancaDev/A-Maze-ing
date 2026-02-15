@@ -71,4 +71,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     config_data = parse_config(sys.argv[1])
-    print("Configuracao carregada com sucesso: ", config_data)
+    print("\nConfiguracao carregada com sucesso: ", config_data)
+
+    clean_config = sanitize_config(config_data)
+    print("\nConfiguracao limpa(tudo convertido):", clean_config)
