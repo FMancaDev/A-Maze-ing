@@ -75,7 +75,17 @@ mazegen/generator.py:
 
 
       - generate:
-        - onde vai estar o algoritmo de backtracking
+            - algoritmo de backtracking:
+                    EXPLORACAO: ele escolhe uma direcao aleatoria(N,S,E,W) e verifica se a celula             do lado ainda nao foi importado, ele parte a parede entre os dois,            entra na nova celula e coloca a celula anterior numa stack
+
+                    BECO SEM SAIDA: ele continua a fazer isso ate chegar a uma celula onde
+                                    todos as celulas a volta ja foram visitados
+
+                    BACKTRACK: quando ele fica preso, ele olha para a stack, volta para a celula
+                               anterior e ve se tem alguma celula livre
+
+                    FIM: o algoritmo termina qnd ele volta a celula inicial e nao ha mais celulas
+                         para explorar
 
 
       - apply_42_pattern:
