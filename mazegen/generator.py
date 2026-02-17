@@ -49,8 +49,8 @@ class MazeGenerator():
                 nx, ny, wall, opp_wall = random.choice(neighbors)
 
                 # parte as paredes - tanforma 1 em 0
-                self.grid[cx][cy] &= ~wall
-                self.grid[nx][ny] &= ~opp_wall
+                self.grid[cy][cx] &= ~wall
+                self.grid[ny][nx] &= ~opp_wall
 
                 visited .add((nx, ny))
                 stack.append((nx, ny))

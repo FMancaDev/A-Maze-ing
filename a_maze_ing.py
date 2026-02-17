@@ -44,10 +44,10 @@ def sanitize_config(raw_config: Dict[str, str]) -> Dict[str, Any]:
 
         # Converte a string "0,0" numa tupla (0, 0)
         entry_coords = raw_config["ENTRY"].split(',')
-        clean["ENTRY"] = int(entry_coords[0], int(entry_coords[1]))
+        clean["ENTRY"] = (int(entry_coords[0]), int(entry_coords[1]))
 
         exit_coords = raw_config["EXIT"].split(',')
-        clean["EXIT"] = int(exit_coords[0], int(exit_coords[1]))
+        clean["EXIT"] = (int(exit_coords[0]), int(exit_coords[1]))
 
         clean["OUTPUT_FILE"] = raw_config["OUTPUT_FILE"]
 
