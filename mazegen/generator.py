@@ -29,7 +29,7 @@ class MazeGenerator():
         random.seed(self.seed)
 
         start_point = (0, 0)
-        stack: List[Tuple[int, int]] = [start_point]
+        stack: List[Tuple[int, int]] = [start_point]  # guarda caminho atual
         visited = {start_point}
 
         while stack:
@@ -40,6 +40,7 @@ class MazeGenerator():
             for dx, dy, wall, opp_wall in self.DIRECTIONS.values():
                 nx, ny = cx + dx, cy + dy
 
+                # garante que estamos dentro do labirinto
                 if 0 <= nx < self.width and 0 <= ny < self.height:
                     if (nx, ny) not in visited:
                         neighbors.append((nx, ny, wall, opp_wall))

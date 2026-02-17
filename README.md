@@ -86,6 +86,26 @@ mazegen/generator.py:
 
                     FIM: o algoritmo termina qnd ele volta a celula inicial e nao ha mais celulas
                          para explorar
+            -------------------------------
+                    . seed garante que o labirinto seja reproduzido, a stack e o caminho atual e o  visited sao as celulas que ja foram visitadas
+
+                    . enquanto houver caminhos para explorar:
+                        procura por celulas nao visitadas: dx, dy, wall, opp_wall
+                        e calcula onde vai chegar com essas coordenadas e cerifica 
+                        se esta dentro do mapa e verifica tbm se ainda nao foi visitado
+
+                    . se houver caminhos disponiveis escolhe aleatoriamnete e 
+                      abre as paredes, marca como visitado e avanca
+
+                    . se nao houver caminhos(beco sem saida) volta a tras(backtracking)
+
+
+NOTA:
+    (cx, cy) - onde estou agora
+    (dx, dy) - quanto ando
+    (nx, ny) - onde vou chegar
+
+                - ao gerar o labirinto 
 
 
       - apply_42_pattern:
