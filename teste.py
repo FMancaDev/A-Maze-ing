@@ -30,14 +30,13 @@ class MazeGenerator():
         self._apply_42_pattern()
 
         start_point = (0, 0)
-        self.grid[0][0] = 15
         stack = [start_point]  # guarda caminho atual
         visited = {start_point}
 
-        """for y in range(self.height):
+        for y in range(self.height):
             for x in range(self.width):
                 if self.grid[y][x] == 15:
-                    visited.add((x, y))"""
+                    visited.add((x, y))
 
         while stack:
             cx, cy = stack[-1]
@@ -59,7 +58,7 @@ class MazeGenerator():
                 self.grid[cy][cx] &= ~wall
                 self.grid[ny][nx] &= ~opp_wall
 
-                visited.add((nx, ny))
+                visited .add((nx, ny))
                 stack.append((nx, ny))
             else:
                 stack.pop()  # volta a tras se nao encontra outra saida
@@ -142,20 +141,22 @@ class MazeGenerator():
         mid_x = self.width // 2
         mid_y = self.height // 2
 
-        mid_x = self.width // 2
-        mid_y = self.height // 2
-
         four = [
-            (mid_x-2, mid_y-1), (mid_x-2, mid_y), (mid_x-1, mid_y),
-            (mid_x, mid_y-1), (mid_x, mid_y), (mid_x, mid_y+1)
+            (mid_x-4, mid_y-2), (mid_x-4, mid_y-1), (mid_x-4, mid_y),
+            (mid_x-3, mid_y), (mid_x-2, mid_y),
+            (mid_x-2, mid_y-2), (mid_x-2, mid_y-1), (mid_x-2, mid_y),
+            (mid_x-2, mid_y+1), (mid_x-2, mid_y+2)
         ]
 
         two = [
-            (mid_x+2, mid_y-1), (mid_x+3, mid_y-1), (mid_x+3, mid_y),
-            (mid_x+2, mid_y), (mid_x+2, mid_y+1), (mid_x+3, mid_y+1)
+            (mid_x+1, mid_y-2), (mid_x+2, mid_y-2), (mid_x+3, mid_y-2),
+            (mid_x+3, mid_y-1), (mid_x+3, mid_y),
+            (mid_x+2, mid_y), (mid_x+1, mid_y),
+            (mid_x+1, mid_y+1), (mid_x+1, mid_y+2),
+            (mid_x+2, mid_y+2), (mid_x+3, mid_y+2)
         ]
 
+        # Aplicar as células fechadas (valor 15)
         for x, y in four + two:
-            if (x, y) != (0, 0) and (x, y) != (self.width-1, self.height-1):
-                if 0 <= x < self.width and 0 <= y < self.height:
-                    self.grid[y][x] = 15
+            if 0 <= x < self.width and 0 <= y < self.height:
+                self.grid[y][x] = 15
