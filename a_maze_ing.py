@@ -24,16 +24,16 @@ def parse_config(filename: str) -> Dict[str, Any]:
                     "EXIT", "OUTPUT_FILE", "PERFECT"]
         for r in required:
             if r not in config:
-                print(f"Erro: Chave obrigatoria {r} em falta.")
+                print(f"Erro: Required key {r} missing.")
                 sys.exit(1)
 
         return config
 
     except FileNotFoundError:
-        print(f"Erro: O ficheiro {filename} nao foi encontrado.")
+        print(f"Error: The file {filename} was not found.")
         sys.exit(1)
     except Exception as erro:
-        print(f"Erro inesperado ao ler config: {erro}")
+        print(f"Unexpected error while reading config: {erro}")
         sys.exit(1)
 
 
@@ -60,15 +60,15 @@ def sanitize_config(raw_config: Dict[str, str]) -> Dict[str, Any]:
         return clean
     except (ValueError, IndexError):
         print(
-            "ERRO: Formato de dados invalido no config.txt"
-            "(ex. WIDTH deve ser um numero)"
+            "\nERROR: Invalid data format in config.txt"
+            " (ex. WIDTH must be a number)"
         )
         sys.exit(1)
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("\nUso: python3 a_maze_ing.py config.txt")
+        print("\nUsage: python3 a_maze_ing.py config.txt")
         sys.exit(1)
 
     config_data = parse_config(sys.argv[1])
@@ -92,6 +92,6 @@ if __name__ == "__main__":
     )
 
     print(
-        f"\nLabirinto gerado e exportado com sucesso para"
+        f"\nMaze successfully generated and exported to"
         f" {clean_config['OUTPUT_FILE']}"
     )

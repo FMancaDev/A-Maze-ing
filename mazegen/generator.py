@@ -16,7 +16,7 @@ class MazeGenerator():
         "W": (-1, 0, WEST, EAST),
     }
 
-    def __init__(self, width: int, height: int, seed: int = 42) -> None:
+    def __init__(self, width: int, height: int, seed: int = 54) -> None:
         self.width: int = width
         self.height: int = height
         self.seed: int = seed
@@ -30,14 +30,26 @@ class MazeGenerator():
         self._apply_42_pattern()
 
         start_point = (0, 0)
-        self.grid[0][0] = 15
         stack = [start_point]  # guarda caminho atual
         visited = {start_point}
 
-        """for y in range(self.height):
-            for x in range(self.width):
-                if self.grid[y][x] == 15:
-                    visited.add((x, y))"""
+        mid_x = self.width // 2
+        mid_y = self.height // 2
+
+        four = [
+            (mid_x-2, mid_y-1), (mid_x-2, mid_y), (mid_x-1, mid_y),
+            (mid_x, mid_y-1), (mid_x, mid_y), (mid_x, mid_y+1)
+        ]
+
+        two = [
+            (mid_x+2, mid_y-1), (mid_x+3, mid_y-1), (mid_x+3, mid_y),
+            (mid_x+2, mid_y), (mid_x+2, mid_y+1), (mid_x+3, mid_y+1)
+        ]
+
+        for x, y in four + two:
+            if 0 <= x < self.width and 0 <= y < self.height:
+                if (x, y) != start_point:
+                    visited.add((x, y))
 
         while stack:
             cx, cy = stack[-1]
@@ -138,9 +150,6 @@ class MazeGenerator():
         if self.width < 15 or self.height < 10:
             print("Warning: Maze size does not allow for for '42' pattern")
             return
-
-        mid_x = self.width // 2
-        mid_y = self.height // 2
 
         mid_x = self.width // 2
         mid_y = self.height // 2
