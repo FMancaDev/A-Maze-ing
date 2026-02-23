@@ -1,6 +1,7 @@
 import sys
 from typing import Dict, Any
 from mazegen.generator import MazeGenerator
+import random as rd
 
 
 def parse_config(filename: str) -> Dict[str, Any]:

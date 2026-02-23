@@ -16,7 +16,7 @@ class MazeGenerator():
         "W": (-1, 0, WEST, EAST),
     }
 
-    def __init__(self, width: int, height: int, seed: int = 54) -> None:
+    def __init__(self, width: int, height: int, seed: int = 42) -> None:
         self.width: int = width
         self.height: int = height
         self.seed: int = seed
