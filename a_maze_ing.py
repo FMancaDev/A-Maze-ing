@@ -1,7 +1,8 @@
 import sys
+import random as rd
+from datetime import datetime
 from typing import Dict, Any
 from mazegen.generator import MazeGenerator
-import random as rd
 
 
 def parse_config(filename: str) -> Dict[str, Any]:
@@ -75,22 +76,28 @@ if __name__ == "__main__":
     config_data = parse_config(sys.argv[1])
     clean_config = sanitize_config(config_data)
 
+    generate_seed = rd.randint(0, 999999) #generate random seed
+
     mg = MazeGenerator(
         clean_config["WIDTH"],
         clean_config["HEIGHT"],
-        clean_config["SEED"]
+        generate_seed
     )
 
     mg.generate(clean_config["PERFECT"])
-
     path = mg.solve(clean_config["ENTRY"], clean_config["EXIT"])
-
     mg.export_to_file(
         clean_config["OUTPUT_FILE"],
         clean_config["ENTRY"],
         clean_config["EXIT"],
         path
     )
+
+    with open("seed_logs.txt", "a") as file:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        file.write(f"[{timestamp}] seed: {mg.seed} | Maze: {clean_config["WIDTH"]}x{clean_config["HEIGHT"]}\n")
+
+    print(f"\nMaze generated! seed: {mg.seed} saved in seed_logs.txt")
 
     print(
         f"\nMaze successfully generated and exported to"

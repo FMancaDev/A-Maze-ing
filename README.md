@@ -142,6 +142,3 @@ nota:
             - funcao serve para converter as strings em tipos reais: tipo bool, int, tuple
               se ja existir um seed ele o usa caso contrari ele usa 42
 
-
-
-FRONT-END()
