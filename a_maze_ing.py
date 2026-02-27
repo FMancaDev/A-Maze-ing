@@ -76,7 +76,7 @@ if __name__ == "__main__":
     config_data = parse_config(sys.argv[1])
     clean_config = sanitize_config(config_data)
 
-    generate_seed = rd.randint(0, 999999) #generate random seed
+    generate_seed = rd.randint(0, 999999)  # generate random seed
 
     mg = MazeGenerator(
         clean_config["WIDTH"],
@@ -95,7 +95,10 @@ if __name__ == "__main__":
 
     with open("seed_logs.txt", "a") as file:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        file.write(f"[{timestamp}] seed: {mg.seed} | Maze: {clean_config["WIDTH"]}x{clean_config["HEIGHT"]}\n")
+        file.write(
+            f"[{timestamp}] seed: {mg.seed} | Maze: "
+            f"{clean_config['WIDTH']}x{clean_config['HEIGHT']}\n"
+        )
 
     print(f"\nMaze generated! seed: {mg.seed} saved in seed_logs.txt")
 
