@@ -5,10 +5,19 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mazegen"
 version = "1.0.0"
-description = "Pacote de geracao de labirintos para a 42"
-authors = [{name = "Fodé Manca e Marcos Teixeira"}]
-requires-python = ">3.10"
+description = "High-performance Maze Generation and Solving package for 42"
+readme = "README.md"
+authors = [{name = "Fodé Manca"}, {name = "Marcos Teixeira"}]
+requires-python = ">=3.10"
 dependencies = []
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Operating System :: OS Independent",
+]
 
-[project_scripts]
+[project.scripts]
 a-maze-ing = "A_maze_ing:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mazegen*"]
