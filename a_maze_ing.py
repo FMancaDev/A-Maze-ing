@@ -6,46 +6,42 @@ from mazegen.generator import MazeGenerator
 
 
 def parse_config(filename: str) -> Dict[str, Any]:
+    """Parses the configuration file and returns a dictionary of values."""
     config: Dict[str, Any] = {}
     try:
         with open(filename, 'r') as file:
             for line in file:
                 line = line.strip()
-                # ignora linhas vazias e omentarios
                 if not line or line.startswith('#'):
                     continue
-
-                # divide a linha em chave e valor
                 if '=' not in line:
                     continue
                 key, value = line.split('=', 1)
                 config[key.strip()] = value.strip()
 
-        # validar chaves
-        required = ["WIDTH", "HEIGHT", "ENTRY",
-                    "EXIT", "OUTPUT_FILE", "PERFECT"]
+        required = ["WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE",
+                    "PERFECT"]
         for r in required:
             if r not in config:
-                print(f"Erro: Required key {r} missing.")
+                print(f"Error: Mandatory key '{r}' is missing in config.")
                 sys.exit(1)
-
         return config
 
     except FileNotFoundError:
-        print(f"Error: The file {filename} was not found.")
+        print(f"Error: The file '{filename}' was not found.")
         sys.exit(1)
-    except Exception as erro:
-        print(f"Unexpected error while reading config: {erro}")
+    except Exception as e:
+        print(f"Unexpected error while reading config: {e}")
         sys.exit(1)
 
 
 def sanitize_config(raw_config: Dict[str, str]) -> Dict[str, Any]:
+    """Validates and converts raw config into appropriate Python types."""
     try:
         clean = {}
         clean["WIDTH"] = int(raw_config["WIDTH"])
         clean["HEIGHT"] = int(raw_config["HEIGHT"])
 
-        # Converte a string "0,0" numa tupla (0, 0)
         entry_coords = raw_config["ENTRY"].split(',')
         clean["ENTRY"] = (int(entry_coords[0]), int(entry_coords[1]))
 
@@ -53,39 +49,46 @@ def sanitize_config(raw_config: Dict[str, str]) -> Dict[str, Any]:
         clean["EXIT"] = (int(exit_coords[0]), int(exit_coords[1]))
 
         clean["OUTPUT_FILE"] = raw_config["OUTPUT_FILE"]
-
-        # converte a string "True e false" num booleano real
         clean["PERFECT"] = raw_config["PERFECT"].lower() == "true"
 
-        clean["SEED"] = int(raw_config.get("SEED", 42))
+        # Boundary Validation
+        w, h = clean["WIDTH"], clean["HEIGHT"]
+        en_x, en_y = clean["ENTRY"]
+        ex_x, ex_y = clean["EXIT"]
+
+        if not (0 <= en_x < w and 0 <= en_y < h):
+            print(f"Error: ENTRY {clean['ENTRY']} is out of bounds.")
+            sys.exit(1)
+
+        if not (0 <= ex_x < w and 0 <= ex_y < h):
+            print(f"Error: EXIT {clean['EXIT']} is out of bounds.")
+            sys.exit(1)
 
         return clean
     except (ValueError, IndexError):
-        print(
-            "\nERROR: Invalid data format in config.txt"
-            " (ex. WIDTH must be a number)"
-        )
+        print("Error: Invalid data format in config file.")
         sys.exit(1)
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Main entry point for the maze generator package."""
     if len(sys.argv) != 2:
-        print("\nUsage: python3 a_maze_ing.py config.txt")
+        print("\nUsage: a-maze-ing config.txt")
         sys.exit(1)
 
     config_data = parse_config(sys.argv[1])
     clean_config = sanitize_config(config_data)
-
-    generate_seed = rd.randint(0, 999999)  # generate random seed
+    gen_seed = rd.randint(0, 999999)
 
     mg = MazeGenerator(
         clean_config["WIDTH"],
         clean_config["HEIGHT"],
-        generate_seed
+        gen_seed
     )
 
     mg.generate(clean_config["PERFECT"])
     path = mg.solve(clean_config["ENTRY"], clean_config["EXIT"])
+
     mg.export_to_file(
         clean_config["OUTPUT_FILE"],
         clean_config["ENTRY"],
@@ -93,16 +96,18 @@ if __name__ == "__main__":
         path
     )
 
-    with open("seed_logs.txt", "a") as file:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        file.write(
-            f"[{timestamp}] seed: {mg.seed} | Maze: "
-            f"{clean_config['WIDTH']}x{clean_config['HEIGHT']}\n"
-        )
+    try:
+        with open("seed_logs.txt", "a") as log:
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log.write(
+                f"[{ts}] Seed: {mg.seed} | Size: {mg.width}x{mg.height}\n"
+            )
+    except Exception as e:
+        print(f"Warning: Could not write to seed_logs.txt: {e}")
 
-    print(f"\nMaze generated! seed: {mg.seed} saved in seed_logs.txt")
+    print(f"\nMaze generated with Seed: {mg.seed}")
+    print(f"Output: {clean_config['OUTPUT_FILE']}")
 
-    print(
-        f"\nMaze successfully generated and exported to"
-        f" {clean_config['OUTPUT_FILE']}"
-    )
+
+if __name__ == "__main__":
+    main()
