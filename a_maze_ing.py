@@ -5,25 +5,24 @@ from mazegen.generator import MazeGenerator
 
 
 def parse_config(filename):
-    """Parses and validates the configuration file."""
+    """Parses and validates the configuration file with memory efficiency."""
     conf = {}
     required = ["WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT"]
     try:
         with open(filename, "r") as f:
             for line in f:
-                if "=" not in line or line.strip().startswith("#"):
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
                     continue
                 k, v = [x.strip() for x in line.split("=", 1)]
                 if k in conf:
                     sys.exit(f"\nError: Duplicate key '{k}'")
                 conf[k] = v
 
-        # Verifica se faltam chaves obrigatorias
         for r in required:
             if r not in conf:
                 sys.exit(f"\nError: Missing mandatory key '{r}'")
 
-        # Conversão e validacao de limites
         w, h = int(conf["WIDTH"]), int(conf["HEIGHT"])
         en = tuple(map(int, conf["ENTRY"].split(",")))
         ex = tuple(map(int, conf["EXIT"].split(",")))
@@ -39,8 +38,7 @@ def parse_config(filename):
 
         return (
             w, h, en, ex, conf["OUTPUT_FILE"], conf["PERFECT"].lower(
-            ) == "true"
-        )
+            ) == "true")
 
     except ValueError as e:
         sys.exit(f"\nConfig Error: Invalid numeric value ({e})")
@@ -50,14 +48,22 @@ def parse_config(filename):
 
 def main():
     """Main entry point for the a-maze-ing package."""
-    if len(sys.argv) != 2:
-        sys.exit("\nUsage: a-maze-ing config.txt")
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
+        sys.exit("\nUsage: a-maze-ing config.txt [seed]")
 
-    w, h, en, ex, out, perf = parse_config(sys.argv[1])
-    seed = rd.randint(0, 999999)
+    w, h, en, ex, out, perfect = parse_config(sys.argv[1])
+
+    # USER
+    if len(sys.argv) == 3:
+        try:
+            seed = int(sys.argv[2])
+        except ValueError:
+            sys.exit("\nError: Seed must be an integer.")
+    else:
+        seed = rd.randint(0, 999999)
 
     mg = MazeGenerator(w, h, en, ex, seed)
-    mg.generate(perf)
+    mg.generate(perfect)
 
     path = mg.solve(en, ex)
     if not path:

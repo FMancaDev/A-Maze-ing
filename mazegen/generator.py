@@ -1,6 +1,6 @@
 import random
 from typing import List, Tuple
-from collection import deque
+from collections import deque
 
 
 class MazeGenerator:
