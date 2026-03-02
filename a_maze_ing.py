@@ -42,6 +42,10 @@ def sanitize_config(raw_config: Dict[str, str]) -> Dict[str, Any]:
         clean["WIDTH"] = int(raw_config["WIDTH"])
         clean["HEIGHT"] = int(raw_config["HEIGHT"])
 
+        if clean["WIDTH"] < 3 or clean["HEIGHT"] < 3:
+            print("Error: Minimum maze dimmension are 3x3")
+            sys.exit(1)
+
         entry_coords = raw_config["ENTRY"].split(',')
         clean["ENTRY"] = (int(entry_coords[0]), int(entry_coords[1]))
 
