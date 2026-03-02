@@ -1,7 +1,7 @@
 # Configuração do Labirinto
-WIDTH=25
-HEIGHT=18
-ENTRY=3,7
-EXIT=21,14
+WIDTH=30
+HEIGHT=30
+ENTRY=6,18
+EXIT=6,18
 OUTPUT_FILE=maze.txt
 PERFECT=True
