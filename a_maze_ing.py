@@ -5,9 +5,10 @@ from mazegen.generator import MazeGenerator
 
 
 def parse_config(filename):
-    """Parses and validates the configuration file with memory efficiency."""
+    """Parses and validates the maze configuration file robustly."""
     conf = {}
     required = ["WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT"]
+
     try:
         with open(filename, "r") as f:
             for line in f:
@@ -23,25 +24,50 @@ def parse_config(filename):
             if r not in conf:
                 sys.exit(f"\nError: Missing mandatory key '{r}'")
 
-        w, h = int(conf["WIDTH"]), int(conf["HEIGHT"])
-        en = tuple(map(int, conf["ENTRY"].split(",")))
-        ex = tuple(map(int, conf["EXIT"].split(",")))
+        # converte e valida WIDTH e HEIGHT
+        try:
+            w = int(conf["WIDTH"])
+            h = int(conf["HEIGHT"])
+        except ValueError:
+            sys.exit("\nError: WIDTH and HEIGHT must be integers")
 
-        if len(en) != 2 or len(ex) != 2:
-            sys.exit("\nError: ENTRY/EXIT must be exactly X,Y")
-        if en == ex:
-            sys.exit("\nError: ENTRY and EXIT cannot be the same")
-        if conf["PERFECT"].lower() not in ["true", "false"]:
-            sys.exit("\nError: PERFECT must be True or False")
-        if w < 3 or h < 3:
+        if w < 1 or h < 1:
+            sys.exit("\nError: WIDTH and HEIGHT must be positive integers")
+        elif w < 3 or h < 3:
             sys.exit("\nError: Minimum dimensions are 3x3")
 
-        return (
-            w, h, en, ex, conf["OUTPUT_FILE"], conf["PERFECT"].lower(
-            ) == "true")
+        for key_name in ["ENTRY", "EXIT"]:
+            parts = conf[key_name].split(",")
+            if len(parts) != 2:
+                sys.exit(f"\nError: {key_name} must have exactly X,Y")
+            try:
+                coords = tuple(int(x.strip()) for x in parts)
+            except ValueError:
+                sys.exit(f"\nError: {key_name} coordinates must be integers")
+            conf[key_name] = coords
 
-    except ValueError as e:
-        sys.exit(f"\nConfig Error: Invalid numeric value ({e})")
+        en = conf["ENTRY"]
+        ex = conf["EXIT"]
+
+        for coord, name in [(en, "ENTRY"), (ex, "EXIT")]:
+            if not (0 <= coord[0] < w and 0 <= coord[1] < h):
+                sys.exit(
+                    f"\nError: {name} {coord} is outside maze bounds ({w}x{h})"
+                )
+        if en == ex:
+            sys.exit("\nError: ENTRY and EXIT cannot be the same")
+
+        # valida PERFECT (booleano)
+        perfect_val = conf["PERFECT"].strip().lower()
+        if perfect_val == "true":
+            perfect = True
+        elif perfect_val == "false":
+            perfect = False
+        else:
+            sys.exit("\nError: PERFECT must be True or False")
+
+        return w, h, en, ex, conf["OUTPUT_FILE"], perfect
+
     except Exception as e:
         sys.exit(f"\nConfig Error: {e}")
 

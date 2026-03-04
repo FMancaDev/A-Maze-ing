@@ -46,6 +46,7 @@ class MazeGenerator:
     def _apply_42_pattern(self) -> None:
         """Draws the '42' pattern, ensuring entry/exit are not blocked."""
         if self.width < 10 or self.height < 8:
+            print("\nWarning: Maze too small to fit 42 logo")
             return
         for x, y in self._get_42_coords():
             if 0 <= x < self.width and 0 <= y < self.height:
@@ -62,10 +63,11 @@ class MazeGenerator:
 
         # marca as celulas '42' como visitadas
         # para forcar o path ao redor delas
-        for x, y in self._get_42_coords():
-            if 0 <= x < self.width and 0 <= y < self.height:
-                if (x, y) != self.entry and (x, y) != self.exit:
-                    visited.add((x, y))
+        if self.width >= 10 and self.height >= 8:
+            for x, y in self._get_42_coords():
+                if 0 <= x < self.width and 0 <= y < self.height:
+                    if (x, y) != self.entry and (x, y) != self.exit:
+                        visited.add((x, y))
 
         while stack:
             cx, cy = stack[-1]
