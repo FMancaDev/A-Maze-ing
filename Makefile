@@ -1,49 +1,48 @@
 PYTHON    = python3
 PIP       = pip3
 CONFIG    = config.txt
-SEED      = $(shell echo $$RANDOM)
 
-# cores
-GREEN    = \033[0;32m
-RED      = \033[0;31m
-RESET    = \033[0m
+# Colors
+GREEN     = \033[0;32m
+RED       = \033[0;31m
+RESET     = \033[0m
 
-.PHONY: all install run test clean flake8 re help
+.PHONY: all install run debug clean lint lint-strict re help
 
 all: install
 
-help:
-	@echo "Available Commands"
-	@echo "make install - installs the package locally"
-	@echo "make run - Runs the generator with the config.txt file"
-	@echo "make test - Runs with a random seed"
-	@echo "make flake8 - Checks the code style"
-	@echo "make clean - Removes temporary files and logs"
-	@echo "make re - Reinstalls everything"
-
 install:
-	@echo "$(GREEN)Instalando o pacote $(PACKAGE)...$(RESET)"
+	@echo "$(GREEN)Installing dependencies and the package...$(RESET)"
 	$(PIP) install .
-	@echo "$(GREEN)Instalação concluída!$(RESET)"
+	$(PIP) install flake8 mypy
 
 run:
-	@echo "$(GREEN)A gerar labirinto com $(CONFIG)...$(RESET)"
 	$(PYTHON) a_maze_ing.py $(CONFIG)
 
-test:
-	@echo "$(GREEN)A testar com SEED aleatória: $(SEED)$(RESET)"
-	$(PACKAGE) $(CONFIG) $(SEED)
+debug:
+	$(PYTHON) -m pdb a_maze_ing.py $(CONFIG)
 
-flake8:
-	@echo "$(GREEN)A verificar conformidade com PEP 8 (Flake8)...$(RESET)"
-	flake8 . --max-line-length=88 --exclude=venv,build,dist
-	@echo "$(GREEN)Código limpo!$(RESET)"
+lint:
+	@echo "$(GREEN)Checking with flake8...$(RESET)"
+	flake8 .
+	@echo "$(GREEN)Checking with mypy (required flags)...$(RESET)"
+	mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+
+lint-strict:
+	flake8 .
+	mypy . --strict
 
 clean:
-	@echo "$(RED)Limpando ficheiros temporários...$(RESET)"
-	rm -rf build/ dist/ *.egg-info .pytest_cache
-	rm -f seed_logs.txt maze.txt
+	@echo "$(RED)Cleaning cache and temporary files...$(RESET)"
+	rm -rf build/ dist/ *.egg-info .mypy_cache .pytest_cache
 	find . -type d -name "__pycache__" -exec rm -rf {} +
-	@echo "$(RED)Limpeza concluída.$(RESET)"
+	@echo "$(RED)Cleanup completed.$(RESET)"
 
 re: clean install
+
+help:
+	@echo "make install      - Install dependencies"
+	@echo "make run          - Run the main program"
+	@echo "make debug        - Run in debug mode (pdb)"
+	@echo "make lint         - Run flake8 and mypy"
+	@echo "make clean        - Remove caches and builds"
