@@ -1,6 +1,5 @@
 PYTHON    = python3
 PIP       = pip3
-PACKAGE   = a-maze-ing
 CONFIG    = config.txt
 SEED      = $(shell echo $$RANDOM)
 
@@ -29,7 +28,7 @@ install:
 
 run:
 	@echo "$(GREEN)A gerar labirinto com $(CONFIG)...$(RESET)"
-	$(PACKAGE) $(CONFIG)
+	$(PYTHON) a_maze_ing.py $(CONFIG)
 
 test:
 	@echo "$(GREEN)A testar com SEED aleatória: $(SEED)$(RESET)"

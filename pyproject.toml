@@ -15,9 +15,6 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-[project.scripts]
-a-maze-ing = "A_maze_ing:main"
-
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["mazegen*"]
