@@ -17,5 +17,5 @@ try:
 except Exception as e:
     print(e)
 
-maze.establish_grid(maze_lines)
+maze.draw_frame(maze_lines)
 maze.mlx.mlx_loop(maze.mlx_ptr)

@@ -74,6 +74,9 @@ class RenderMaze():
                   size_line: c_uint,
                   bpp: c_uint) -> None:
         """draws pixel to img buffer"""
+        if (x < 0 or x >= self.win_dim['width'] or
+           y < 0 or y >= self.win_dim['height']):
+            return
         offset: c_uint = y * size_line + x * (bpp // 8)
         data[offset] = color & 0xFF
         data[offset + 1] = (color >> 8) & 0xFF
@@ -115,46 +118,36 @@ class RenderMaze():
         """sets the key state as False upon release"""
         self.keys_pressed[keycode] = False
 
-    def establish_grid(self, maze_lines: list) -> None:
-        try:
-            if not isinstance(maze_lines, list):
-                raise TypeError('establish_grid() - maze_lines '
-                                'is not a valid list of lines')
-            for line in maze_lines:
-                if not isinstance(line, str):
-                    raise TypeError('establish_grid() - maze_lines '
-                                    'is not a valid list of lines')
+    def set_layout(self, maze_lines: list) -> None:
+        columns: int = len(maze_lines[0])
+        rows: int = len(maze_lines)
 
-            columns: int = len(maze_lines[0])
-            rows: int = len(maze_lines)
-            cell_size: int = 0
-            margin: float = 0.8
-            active_w: int = round(self.win_dim['width'] * margin)
-            active_h: int = round(self.win_dim['height'] * margin)
-            contour_width: int = 10
+        margin: float = 0.8
+        active_w: int = round(self.win_dim['width'] * margin)
+        active_h: int = round(self.win_dim['height'] * margin)
 
-            if columns > rows:
-                # if maze is larger than it is taller,
-                # we'll center it horizontally
-                self.win_dim['maze_mode'] = 'landscape'
-                if active_w // columns < 3:
-                    raise ValueError('Active area isn\'t '
-                                     'big enough for maze height')
-                cell_size = active_w // columns
-                self.draw_frame(cell_size, columns, rows, contour_width)
-            else:
-                # else, we'll center it vertically
-                self.win_dim['maze_mode'] = 'portrait'
-                if active_h // rows < 3:
-                    raise ValueError('Active area isn\'t '
-                                     'big enough for maze height')
-                cell_size = active_h // rows
-                self.draw_frame(cell_size, columns, rows, contour_width)
+        cell_size: int = 0
 
-        except (TypeError, KeyError, ValueError) as e:
-            print(f'[ERROR]: {e}')
-            print('Quitting...')
-            self.quit_prg()
+        if columns >= rows:
+            if active_w // columns < 3:
+                raise ValueError('Active area isn\'t '
+                                 'big enough for maze height')
+            cell_size = active_w // columns
+
+        else:
+            if active_h // rows < 3:
+                raise ValueError('Active area isn\'t '
+                                 'big enough for maze height')
+            cell_size = active_h // rows
+
+        self.maze_grid: dict[str, int] = {
+            'width': active_w,
+            'height': active_h,
+            'cell_size': cell_size,
+            'margin': (self.win_dim['width'] - active_w) // 2 if (
+                columns >= rows) else (self.win_dim['height'] - active_h) // 2,
+            'border_thickness': 1 if cell_size < 5 else cell_size // 5
+        }
 
     def draw_line(self, start: tuple, end: tuple, color: int) -> None:
         """using Bresenham\'s algorithm to draw lines"""
@@ -183,29 +176,41 @@ class RenderMaze():
                 error += dx
                 y0 += sy
 
-    def draw_frame(self, cell_size: int, columns: int, rows: int,
-                   contour_width: int) -> None:
-        try:
-            pass
-        except Exception:
-            pass
-        margin: int = 0
-        width: int = cell_size * columns
-        height: int = cell_size * rows
+    def draw_thick_line(self, start: tuple, end: tuple, color: int,
+                        thickness: int) -> None:
+        dx: int = end[0] - start[0]
+        dy: int = end[1] - start[1]
+        half: int = thickness // 2
 
-        if self.win_dim['maze_mode'] == 'landscape':
-            margin = ((self.win_dim['width'] - width) // 2)
+        if abs(dx) >= abs(dy):
+            for i in range(-half, half + 1):
+                self.draw_line((start[0] - half, start[1] + i),
+                               (end[0] + half, end[1] + i), color)
+        else:
+            for i in range(-half, half + 1):
+                self.draw_line((start[0] + i, start[1] - half),
+                               (end[0] + i, end[1] + half), color)
 
-        elif self.win_dim['maze_mode'] == 'portrait':
-            margin = ((self.win_dim['height'] - height) // 2)
-        top_right: tuple[int, int] = (margin + width, margin)
-        bottom_left: tuple[int, int] = (margin, margin + height)
-        bottom_right: tuple[int, int] = (margin + width, margin + height)
-        top_left: tuple[int, int] = (margin, margin)
+    def draw_frame(self, maze_lines: list):
+        self.set_layout(maze_lines)
+        cor: dict[str | tuple] = {
+            'tl': (self.maze_grid['margin'],
+                   self.maze_grid['margin']),
 
-        for thick in range(top_left[1], top_left[1] + contour_width):
-            top_left[1] 
-            self.draw_line(top_left, top_right, 0xFFFFFFFF)
-        self.draw_line(top_left, bottom_left, 0xFFFFFFFF)
-        self.draw_line(bottom_left, bottom_right, 0xFFFFFFFF)
-        self.draw_line(bottom_right, top_right, 0xFFFFFFFF)
+            'tr': (self.maze_grid['margin'] + self.maze_grid['width'],
+                   self.maze_grid['margin']),
+
+            'bl': (self.maze_grid['margin'],
+                   self.maze_grid['margin'] + self.maze_grid['height']),
+
+            'br': (self.maze_grid['margin'] + self.maze_grid['width'],
+                   self.maze_grid['margin'] + self.maze_grid['height']),
+        }
+        self.draw_thick_line(cor['tl'], cor['tr'],
+                             0xFFFFFFFF, self.maze_grid['border_thickness'])
+        self.draw_thick_line(cor['tl'], cor['bl'],
+                             0xFFFFFFFF, self.maze_grid['border_thickness'])
+        self.draw_thick_line(cor['bl'], cor['br'],
+                             0xFFFFFFFF, self.maze_grid['border_thickness'])
+        self.draw_thick_line(cor['br'], cor['tr'],
+                             0xFFFFFFFF, self.maze_grid['border_thickness'])
