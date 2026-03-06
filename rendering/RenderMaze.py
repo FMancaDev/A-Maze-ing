@@ -1,5 +1,5 @@
 from mlx import Mlx
-from typing import Any
+from typing import Any, Optional
 from ctypes import c_void_p, c_uint
 import os
 
@@ -119,7 +119,7 @@ class RenderMaze():
         self.keys_pressed[keycode] = False
 
     def set_layout(self, maze_lines: list) -> None:
-        columns: int = len(maze_lines[0])
+        columns: int = len(maze_lines[0].strip('\n'))
         rows: int = len(maze_lines)
 
         margin: float = 0.8
@@ -140,12 +140,21 @@ class RenderMaze():
                                  'big enough for maze height')
             cell_size = active_h // rows
 
+        maze_width: int = cell_size * columns
+        maze_height: int = cell_size * rows
+        x_offset: int = (self.win_dim['width'] - maze_width) // 2
+        y_offset: int = (self.win_dim['height'] - maze_height) // 2
+
         self.maze_grid: dict[str, int] = {
-            'width': active_w,
-            'height': active_h,
+            'width': maze_width,
+            'height': maze_height,
             'cell_size': cell_size,
-            'margin': (self.win_dim['width'] - active_w) // 2 if (
-                columns >= rows) else (self.win_dim['height'] - active_h) // 2,
+            'coordinates': {
+                'tl': (x_offset, y_offset),
+                'tr': (x_offset + maze_width, y_offset),
+                'bl': (x_offset, y_offset + maze_height),
+                'br': (x_offset + maze_width, y_offset + maze_height)
+            },
             'border_thickness': 1 if cell_size < 5 else cell_size // 5
         }
 
@@ -193,24 +202,77 @@ class RenderMaze():
 
     def draw_frame(self, maze_lines: list):
         self.set_layout(maze_lines)
-        cor: dict[str | tuple] = {
-            'tl': (self.maze_grid['margin'],
-                   self.maze_grid['margin']),
+        coor: dict[str, Any] = self.maze_grid['coordinates']
 
-            'tr': (self.maze_grid['margin'] + self.maze_grid['width'],
-                   self.maze_grid['margin']),
+        self.draw_thick_line(coor['tl'], coor['tr'],
+                             0xFFFFFFFF, self.maze_grid['border_thickness'])
+        self.draw_thick_line(coor['tl'], coor['bl'],
+                             0xFFFFFFFF, self.maze_grid['border_thickness'])
+        self.draw_thick_line(coor['bl'], coor['br'],
+                             0xFFFFFFFF, self.maze_grid['border_thickness'])
+        self.draw_thick_line(coor['br'], coor['tr'],
+                             0xFFFFFFFF, self.maze_grid['border_thickness'])
 
-            'bl': (self.maze_grid['margin'],
-                   self.maze_grid['margin'] + self.maze_grid['height']),
+    def fill_rect(self, coor: dict, color: int) -> None:
+        for y in range(coor['y0'], coor['y1']):
+            for x in range(coor['x0'], coor['x1']):
+                self.put_pixel(self.img['data'], x, y,
+                               color, self.img['size_line'], self.img['bpp'])
 
-            'br': (self.maze_grid['margin'] + self.maze_grid['width'],
-                   self.maze_grid['margin'] + self.maze_grid['height']),
-        }
-        self.draw_thick_line(cor['tl'], cor['tr'],
-                             0xFFFFFFFF, self.maze_grid['border_thickness'])
-        self.draw_thick_line(cor['tl'], cor['bl'],
-                             0xFFFFFFFF, self.maze_grid['border_thickness'])
-        self.draw_thick_line(cor['bl'], cor['br'],
-                             0xFFFFFFFF, self.maze_grid['border_thickness'])
-        self.draw_thick_line(cor['br'], cor['tr'],
-                             0xFFFFFFFF, self.maze_grid['border_thickness'])
+    def draw_maze(self, maze_lines: list, color: int) -> None:
+        start: tuple = self.maze_grid['coordinates']['tl']
+        cell_size: int = self.maze_grid['cell_size']
+        cell_thickness: int = self.maze_grid['border_thickness'] // 2
+        
+        start_x: int = start[0]
+        maze: list[str] = [x.strip('\n') for x in maze_lines]
+        for line in maze:
+            for cell in line:
+                walls: Optional[tuple] = to_base_10[cell]
+                for wall in walls:
+                    match wall:
+                        case 'N':
+                            self.draw_thick_line(start,
+                                                 (start[0] + cell_size,
+                                                  start[1]),
+                                                 color, cell_thickness)
+                        case 'E':
+                            self.draw_thick_line((start[0] + cell_size,
+                                                  start[1]),
+                                                 (start[0] + cell_size,
+                                                 start[1] + cell_size),
+                                                 color, cell_thickness)
+                        case 'S':
+                            self.draw_thick_line((start[0],
+                                                 start[1] + cell_size),
+                                                 (start[0] + cell_size,
+                                                 start[1] + cell_size),
+                                                 color, cell_thickness)
+                        case 'W':
+                            self.draw_thick_line((start[0], start[1]),
+                                                 (start[0],
+                                                  start[1] + cell_size),
+                                                 color, cell_thickness)
+                start = (start[0] + cell_size, start[1])
+
+            start = (start_x, start[1] + cell_size)
+
+
+to_base_10: dict[str, int] = {
+    '0': None,
+    '1': ('N'),
+    '2': ('E'),
+    '3': ('E', 'N'),
+    '4': ('S'),
+    '5': ('S', 'N'),
+    '6': ('S', 'E'),
+    '7': ('S', 'E', 'N'),
+    '8': ('W'),
+    '9': ('W', 'N'),
+    'A': ('W', 'E'),  # 10
+    'B': ('W', 'E', 'N'),  # 11
+    'C': ('W', 'S'),  # 12
+    'D': ('W', 'S', 'N'),  # 13
+    'E': ('W', 'S', 'E'),  # 14
+    'F': ('W', 'S', 'E', 'N')  # 15
+}
