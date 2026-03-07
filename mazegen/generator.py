@@ -32,21 +32,24 @@ class MazeGenerator:
     def _get_42_coords(self) -> List[Tuple[int, int]]:
         """Returns the centralized coordinates for the '42' pattern."""
         mid_x, mid_y = self.width // 2, self.height // 2
-
         four = [
-            (mid_x - 2, mid_y - 1), (mid_x - 2, mid_y), (mid_x - 1, mid_y),
-            (mid_x, mid_y - 1), (mid_x, mid_y), (mid_x, mid_y + 1)
+            (mid_x - 3, mid_y - 2), (mid_x - 3, mid_y - 1), (mid_x - 3, mid_y),
+            (mid_x - 2, mid_y), (mid_x - 1, mid_y),
+            (mid_x - 1, mid_y - 2), (mid_x - 1, mid_y - 1), 
+            (mid_x - 1, mid_y + 1), (mid_x - 1, mid_y + 2)
         ]
         two = [
-            (mid_x + 2, mid_y - 1), (mid_x + 3, mid_y - 1), (mid_x + 3, mid_y),
-            (mid_x + 2, mid_y), (mid_x + 2, mid_y + 1), (mid_x + 3, mid_y + 1)
+            (mid_x + 1, mid_y - 2), (mid_x + 2, mid_y - 2), (mid_x + 3, mid_y - 2),
+            (mid_x + 3, mid_y - 1), (mid_x + 3, mid_y),
+            (mid_x + 2, mid_y), (mid_x + 1, mid_y),
+            (mid_x + 1, mid_y + 1),
+            (mid_x + 1, mid_y + 2), (mid_x + 2, mid_y + 2), (mid_x + 3, mid_y + 2)
         ]
         return four + two
 
     def _apply_42_pattern(self) -> None:
         """Draws the '42' pattern, ensuring entry/exit are not blocked."""
         if self.width < 10 or self.height < 8:
-            print("\nWarning: Maze too small to fit 42 logo")
             return
         for x, y in self._get_42_coords():
             if 0 <= x < self.width and 0 <= y < self.height:
@@ -61,8 +64,6 @@ class MazeGenerator:
         stack = [self.entry]
         visited = {self.entry}
 
-        # marca as celulas '42' como visitadas
-        # para forcar o path ao redor delas
         if self.width >= 10 and self.height >= 8:
             for x, y in self._get_42_coords():
                 if 0 <= x < self.width and 0 <= y < self.height:
@@ -73,19 +74,15 @@ class MazeGenerator:
             cx, cy = stack[-1]
             neighbors = []
 
-            # procura locais nao visitados
             for dx, dy, wall, opp_wall in self.DIRECTIONS.values():
                 nx, ny = cx + dx, cy + dy
 
-                # garante que estamos nos limites do maze
                 if 0 <= nx < self.width and 0 <= ny < self.height:
                     if (nx, ny) not in visited:
                         neighbors.append((nx, ny, wall, opp_wall))
-
             if neighbors:
                 nx, ny, wall, opp_wall = random.choice(neighbors)
 
-                # parte as paredes - transforma 1 em 0
                 self.grid[cy][cx] &= ~wall
                 self.grid[ny][nx] &= ~opp_wall
 
@@ -98,10 +95,8 @@ class MazeGenerator:
             self._make_imperfect()
 
     def _make_imperfect(self) -> None:
-        """Removes extra walls to create multiple paths"""
-
+        """Removes extra walls to create multiple paths (cycles)."""
         num_extra_walls = (self.width * self.height) // 20
-
         for _ in range(num_extra_walls):
             x = random.randint(0, self.width - 1)
             y = random.randint(0, self.height - 1)
@@ -116,7 +111,7 @@ class MazeGenerator:
 
     def solve(self, start: Tuple[int, int],
               end: Tuple[int, int]) -> List[Tuple[int, int]]:
-        """Finds the shortest path using BFS with O(1) popleft."""
+        """Finds the shortest path using BFS with O(1) performance."""
         queue = deque([start])
         parent = {start: None}
 
@@ -127,10 +122,7 @@ class MazeGenerator:
 
             for dx, dy, wall, _ in self.DIRECTIONS.values():
                 nx, ny = cx + dx, cy + dy
-
                 if 0 <= nx < self.width and 0 <= ny < self.height:
-
-                    # verifica se n ha paredes
                     if not (self.grid[cy][cx] & wall):
                         if (nx, ny) not in parent:
                             parent[(nx, ny)] = (cx, cy)
@@ -145,25 +137,21 @@ class MazeGenerator:
         return path[::-1]
 
     def get_path_string(self, path: List[Tuple[int, int]]) -> str:
-        """Converts coordinates into a directional string."""
+        """Converts coordinates into the directional string format."""
         path_str = ""
         for i in range(len(path) - 1):
             curr, nxt = path[i], path[i + 1]
             dx, dy = nxt[0] - curr[0], nxt[1] - curr[1]
-            if dx == 1:
-                path_str += "E"
-            elif dx == -1:
-                path_str += "W"
-            elif dy == 1:
-                path_str += "S"
-            elif dy == -1:
-                path_str += "N"
+            if dx == 1: path_str += "E"
+            elif dx == -1: path_str += "W"
+            elif dy == 1: path_str += "S"
+            elif dy == -1: path_str += "N"
         return path_str
 
     def export_to_file(self, filename: str, entry: Tuple[int, int],
                        exit_coords: Tuple[int, int],
                        path: List[Tuple[int, int]]):
-        """Writes the maze in hexadecimal format."""
+        """Writes the maze to a file in the required hexadecimal format."""
         try:
             with open(filename, 'w') as file:
                 for row in self.grid:

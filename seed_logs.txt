@@ -1,3 +1,5 @@
 [2026-03-06 21:54:28] Seed: 625747 | Size: 15x50 | File: maze.txt
 [2026-03-06 21:55:06] Seed: 828145 | Size: 15x50 | File: maze.txt
 [2026-03-06 23:34:09] Seed: 52157 | Size: 50x50 | File: maze.txt
+[2026-03-07 01:05:41] Seed: 114660 | Size: 15x15 | File: maze.txt
+[2026-03-07 01:07:55] Seed: 889530 | Size: 100x100 | File: maze.txt
