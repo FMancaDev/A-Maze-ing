@@ -12,9 +12,14 @@ RESET     = \033[0m
 all: install
 
 install:
-	@echo "$(GREEN)Installing dependencies and the package...$(RESET)"
-	$(PIP) install .
-	$(PIP) install flake8 mypy
+	@echo "$(GREEN)Creating Virtual Environment...$(RESET)"
+	python3 -m venv venv
+	@echo "$(GREEN)Installing dependencies...$(RESET)"
+	./venv/bin/pip install --upgrade pip
+	./venv/bin/pip install .
+	./venv/bin/pip install flake8 mypy
+	@echo "$(GREEN)Done. Use 'source venv/bin/activate' to start.$(RESET)"
+
 
 run:
 	$(PYTHON) a_maze_ing.py $(CONFIG)
