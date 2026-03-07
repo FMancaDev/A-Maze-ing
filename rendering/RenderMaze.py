@@ -122,7 +122,7 @@ class RenderMaze():
         columns: int = len(maze_lines[0].strip('\n'))
         rows: int = len(maze_lines)
 
-        margin: float = 0.8
+        margin: float = 0.9
         active_w: int = round(self.win_dim['width'] * margin)
         active_h: int = round(self.win_dim['height'] * margin)
 
@@ -207,18 +207,17 @@ class RenderMaze():
                 self.draw_line((start[0] + i, start[1] - half),
                                (end[0] + i, end[1] + half), color)
 
-    def draw_frame(self, maze_lines: list):
-        self.set_layout(maze_lines)
+    def draw_frame(self, maze_lines: list, color: int):
         coor: dict[str, Any] = self.maze_grid['coordinates']
 
         self.draw_thick_line(coor['tl'], coor['tr'],
-                             0xFFFFFFFF, self.maze_grid['border_thickness'])
+                             color, self.maze_grid['border_thickness'])
         self.draw_thick_line(coor['tl'], coor['bl'],
-                             0xFFFFFFFF, self.maze_grid['border_thickness'])
+                             color, self.maze_grid['border_thickness'])
         self.draw_thick_line(coor['bl'], coor['br'],
-                             0xFFFFFFFF, self.maze_grid['border_thickness'])
+                             color, self.maze_grid['border_thickness'])
         self.draw_thick_line(coor['br'], coor['tr'],
-                             0xFFFFFFFF, self.maze_grid['border_thickness'])
+                             color, self.maze_grid['border_thickness'])
 
     def fill_rect(self, coor: dict, color: int) -> None:
         for y in range(coor['y0'], coor['y1']):
@@ -226,7 +225,7 @@ class RenderMaze():
                 self.put_pixel(self.img['data'], x, y,
                                color, self.img['size_line'], self.img['bpp'])
 
-    def draw_maze(self, maze_lines: list, color: int) -> None:
+    def draw_maze(self, maze_lines: list, color: int, fill_color: int) -> None:
         start: tuple = self.maze_grid['coordinates']['tl']
         cell_size: int = self.maze_grid['cell_size']
         cell_thickness: int = self.maze_grid['border_thickness'] // 2
@@ -236,35 +235,66 @@ class RenderMaze():
         for line in maze:
             for cell in line:
                 walls: Optional[tuple] = to_base_10[cell]
+                if walls == ('W', 'S', 'E', 'N'):
+                    self.fill_rect(
+                        {'x0': start[0], 'x1': start[0] + cell_size,
+                         'y0': start[1], 'y1': start[1] + cell_size},
+                        fill_color
+                    )
                 if walls:
                     for wall in walls:
                         match wall:
                             case 'N':
                                 self.draw_thick_line(start,
-                                                    (start[0] + cell_size,
-                                                    start[1]),
-                                                    color, cell_thickness)
+                                                     (start[0] + cell_size,
+                                                      start[1]),
+                                                     color, cell_thickness)
                             case 'E':
                                 self.draw_thick_line((start[0] + cell_size,
-                                                    start[1]),
-                                                    (start[0] + cell_size,
-                                                    start[1] + cell_size),
-                                                    color, cell_thickness)
+                                                     start[1]),
+                                                     (start[0] + cell_size,
+                                                     start[1] + cell_size),
+                                                     color, cell_thickness)
                             case 'S':
                                 self.draw_thick_line((start[0],
-                                                    start[1] + cell_size),
-                                                    (start[0] + cell_size,
-                                                    start[1] + cell_size),
-                                                    color, cell_thickness)
+                                                     start[1] + cell_size),
+                                                     (start[0] + cell_size,
+                                                     start[1] + cell_size),
+                                                     color, cell_thickness)
                             case 'W':
                                 self.draw_thick_line((start[0], start[1]),
-                                                    (start[0],
-                                                    start[1] + cell_size),
-                                                    color, cell_thickness)
+                                                     (start[0],
+                                                     start[1] + cell_size),
+                                                     color, cell_thickness)
                 start = (start[0] + cell_size, start[1])
 
             start = (start_x, start[1] + cell_size)
 
+    def draw_path(self, path_info: list, color: int) -> None:
+        cell_start: tuple = (int(path_info[0].strip().split(',')[0]),
+                             int(path_info[0].strip().split(',')[1]))
+        tl: tuple = self.maze_grid['coordinates']['tl']
+        moves: str = path_info[2].strip()
+        cell_size: int = self.maze_grid['cell_size']
+
+        border_thickness: int = self.maze_grid['border_thickness']
+
+        start = (cell_start[0] + tl[0] + cell_size // 2,
+                 cell_start[1] + tl[1] + cell_size // 2)
+        end: tuple = (0,0)
+
+        for move in moves:
+            match move:
+                case 'N':
+                    end = (start[0], start[1] - cell_size)
+                case 'E':
+                    end = (start[0] + cell_size, start[1])
+                case 'S':
+                    end = (start[0], start[1] + cell_size)
+                case 'W':
+                    end = (start[0] - cell_size, start[1])
+            self.draw_thick_line(start, end, color, border_thickness)
+            start = end
 
 to_base_10: dict[str, int] = {
     '0': None,
