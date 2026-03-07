@@ -1,5 +1,5 @@
-PYTHON    = python3
-PIP       = pip3
+PYTHON    = ./venv/bin/python3
+PIP       = ./venv/bin/pip3
 CONFIG    = config.txt
 
 # Colors
@@ -16,11 +16,11 @@ install:
 	python3 -m venv venv
 	@echo "$(GREEN)Installing dependencies...$(RESET)"
 	./venv/bin/pip install --upgrade pip
+	./venv/bin/pip install mlx-2.2-py3-ubuntu-any.whl
 	./venv/bin/pip install .
 	./venv/bin/pip install flake8 mypy
 	@echo "$(GREEN)Done. Use 'source venv/bin/activate' to start.$(RESET)"
-
-
+	
 run:
 	$(PYTHON) a_maze_ing.py $(CONFIG)
 
