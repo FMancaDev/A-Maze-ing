@@ -127,18 +127,25 @@ class RenderMaze():
         active_h: int = round(self.win_dim['height'] * margin)
 
         cell_size: int = 0
+        try:
+            if columns >= rows:
+                cell_size = active_w // columns
+                if cell_size * rows > active_h:
+                    cell_size = active_h // rows
+                if cell_size < 3:
+                    raise ValueError('Active area isn\'t '
+                                     'big enough for maze width')
+            else:
+                cell_size = active_h // rows
+                if cell_size * columns > active_w:
+                    cell_size = active_w // columns
+                if cell_size < 3:
+                    raise ValueError('Active area isn\'t '
+                                     'big enough for maze height')
 
-        if columns >= rows:
-            if active_w // columns < 3:
-                raise ValueError('Active area isn\'t '
-                                 'big enough for maze height')
-            cell_size = active_w // columns
-
-        else:
-            if active_h // rows < 3:
-                raise ValueError('Active area isn\'t '
-                                 'big enough for maze height')
-            cell_size = active_h // rows
+        except ValueError as e:
+            print(f'[ERROR]: {e}')
+            self.quit_prg()
 
         maze_width: int = cell_size * columns
         maze_height: int = cell_size * rows
@@ -223,36 +230,37 @@ class RenderMaze():
         start: tuple = self.maze_grid['coordinates']['tl']
         cell_size: int = self.maze_grid['cell_size']
         cell_thickness: int = self.maze_grid['border_thickness'] // 2
-        
+
         start_x: int = start[0]
         maze: list[str] = [x.strip('\n') for x in maze_lines]
         for line in maze:
             for cell in line:
                 walls: Optional[tuple] = to_base_10[cell]
-                for wall in walls:
-                    match wall:
-                        case 'N':
-                            self.draw_thick_line(start,
-                                                 (start[0] + cell_size,
-                                                  start[1]),
-                                                 color, cell_thickness)
-                        case 'E':
-                            self.draw_thick_line((start[0] + cell_size,
-                                                  start[1]),
-                                                 (start[0] + cell_size,
-                                                 start[1] + cell_size),
-                                                 color, cell_thickness)
-                        case 'S':
-                            self.draw_thick_line((start[0],
-                                                 start[1] + cell_size),
-                                                 (start[0] + cell_size,
-                                                 start[1] + cell_size),
-                                                 color, cell_thickness)
-                        case 'W':
-                            self.draw_thick_line((start[0], start[1]),
-                                                 (start[0],
-                                                  start[1] + cell_size),
-                                                 color, cell_thickness)
+                if walls:
+                    for wall in walls:
+                        match wall:
+                            case 'N':
+                                self.draw_thick_line(start,
+                                                    (start[0] + cell_size,
+                                                    start[1]),
+                                                    color, cell_thickness)
+                            case 'E':
+                                self.draw_thick_line((start[0] + cell_size,
+                                                    start[1]),
+                                                    (start[0] + cell_size,
+                                                    start[1] + cell_size),
+                                                    color, cell_thickness)
+                            case 'S':
+                                self.draw_thick_line((start[0],
+                                                    start[1] + cell_size),
+                                                    (start[0] + cell_size,
+                                                    start[1] + cell_size),
+                                                    color, cell_thickness)
+                            case 'W':
+                                self.draw_thick_line((start[0], start[1]),
+                                                    (start[0],
+                                                    start[1] + cell_size),
+                                                    color, cell_thickness)
                 start = (start[0] + cell_size, start[1])
 
             start = (start_x, start[1] + cell_size)
