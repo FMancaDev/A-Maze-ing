@@ -24,7 +24,7 @@ def parse_config(filename):
             if r not in conf:
                 sys.exit(f"\nError: Missing mandatory key '{r}'")
 
-        # converte e valida WIDTH e HEIGHT
+        # Validacao de WIDTH e HEIGHT
         try:
             w = int(conf["WIDTH"])
             h = int(conf["HEIGHT"])
@@ -36,6 +36,7 @@ def parse_config(filename):
         elif w < 3 or h < 3:
             sys.exit("\nError: Minimum dimensions are 3x3")
 
+        # Validacao de ENTRY e EXIT
         for key_name in ["ENTRY", "EXIT"]:
             parts = conf[key_name].split(",")
             if len(parts) != 2:
@@ -57,16 +58,14 @@ def parse_config(filename):
         if en == ex:
             sys.exit("\nError: ENTRY and EXIT cannot be the same")
 
-        # valida PERFECT (booleano)
         perfect_val = conf["PERFECT"].strip().lower()
-        if perfect_val == "true":
-            perfect = True
-        elif perfect_val == "false":
-            perfect = False
-        else:
+        if perfect_val not in ["true", "false"]:
             sys.exit("\nError: PERFECT must be True or False")
+        perfect = (perfect_val == "true")
 
-        return w, h, en, ex, conf["OUTPUT_FILE"], perfect
+        gen_algo = conf.get("GEN_ALGO", "backtracking").strip().lower()
+
+        return w, h, en, ex, conf["OUTPUT_FILE"], perfect, gen_algo
 
     except Exception as e:
         sys.exit(f"\nConfig Error: {e}")
@@ -77,9 +76,8 @@ def main():
     if len(sys.argv) < 2 or len(sys.argv) > 3:
         sys.exit("\nUsage: a-maze-ing config.txt [seed]")
 
-    w, h, en, ex, out, perfect = parse_config(sys.argv[1])
+    w, h, en, ex, out, perfect, gen_algo = parse_config(sys.argv[1])
 
-    # USER
     if len(sys.argv) == 3:
         try:
             seed = int(sys.argv[2])
@@ -89,18 +87,26 @@ def main():
         seed = rd.randint(0, 999999)
 
     mg = MazeGenerator(w, h, en, ex, seed)
-    mg.generate(perfect)
 
+    print(f"Generating maze using: {gen_algo}...")
+    mg.generate(perfect=perfect, method=gen_algo)
+
+    print("Solving maze (Shortest Path)...")
     path = mg.solve(en, ex)
+
     if not path:
         print("\nWarning: No path found (Check if ENTRY/EXIT is blocked)")
 
     mg.export_to_file(out, en, ex, path)
 
+    # Logs de Seed
     try:
         with open("seed_logs.txt", "a") as log:
             ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            log.write(f"[{ts}] Seed: {seed} | Size: {w}x{h} | File: {out}\n")
+            log.write(
+                f"[{ts}] Seed: {seed} | Size: {w}x{h} | Algo: "
+                f"{gen_algo} | File: {out}\n"
+            )
     except Exception:
         pass
 

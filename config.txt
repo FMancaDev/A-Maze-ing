@@ -5,3 +5,4 @@ ENTRY=0,0
 EXIT=14,10
 OUTPUT_FILE=maze.txt
 PERFECT=True
+GEN_ALGO=prim
