@@ -11,6 +11,16 @@ class RenderMaze():
         self.mlx_ptr: c_void_p = self.mlx.mlx_init()
         self.win_dim: dict[str | int] = {}
 
+        self.path_alpha: float = 0.0
+        self.path_fade_speed: float = 0.03
+        self.show_path: bool = False
+        self.path_drawn: bool = False
+
+        self.cached_path_info: list[str] = []
+        self.cached_maze_lines: list[str] = []
+        self.path_color: int = 0
+        self.bg_color: int = 0
+
         try:
             if not isinstance(w, int):
                 raise TypeError('w')
@@ -197,15 +207,17 @@ class RenderMaze():
         dx: int = end[0] - start[0]
         dy: int = end[1] - start[1]
         half: int = thickness // 2
+        ex = half if dx >= 0 else -half  # extension on x axis
+        ey = half if dy >= 0 else -half  # extension on y axis
 
         if abs(dx) >= abs(dy):
             for i in range(-half, half + 1):
-                self.draw_line((start[0] - half, start[1] + i),
-                               (end[0] + half, end[1] + i), color)
+                self.draw_line((start[0] - ex, start[1] + i),
+                               (end[0] + ex, end[1] + i), color)
         else:
             for i in range(-half, half + 1):
-                self.draw_line((start[0] + i, start[1] - half),
-                               (end[0] + i, end[1] + half), color)
+                self.draw_line((start[0] + i, start[1] - ey),
+                               (end[0] + i, end[1] + ey), color)
 
     def draw_frame(self, maze_lines: list, color: int):
         coor: dict[str, Any] = self.maze_grid['coordinates']
@@ -295,6 +307,7 @@ class RenderMaze():
                     end = (start[0] - cell_size, start[1])
             self.draw_thick_line(start, end, color, border_thickness)
             start = end
+
 
 to_base_10: dict[str, int] = {
     '0': None,
