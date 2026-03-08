@@ -5,10 +5,8 @@ from mazegen.generator import MazeGenerator
 
 
 def parse_config(filename):
-    """Parses and validates the maze configuration file robustly."""
     conf = {}
     required = ["WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT"]
-
     try:
         with open(filename, "r") as f:
             for line in f:
@@ -24,10 +22,8 @@ def parse_config(filename):
             if r not in conf:
                 sys.exit(f"\nError: Missing mandatory key '{r}'")
 
-        # converte e valida WIDTH e HEIGHT
         try:
-            w = int(conf["WIDTH"])
-            h = int(conf["HEIGHT"])
+            w, h = int(conf["WIDTH"]), int(conf["HEIGHT"])
         except ValueError:
             sys.exit("\nError: WIDTH and HEIGHT must be integers")
 
@@ -39,7 +35,7 @@ def parse_config(filename):
         for key_name in ["ENTRY", "EXIT"]:
             parts = conf[key_name].split(",")
             if len(parts) != 2:
-                sys.exit(f"\nError: {key_name} must have exactly X,Y")
+                sys.exit(f"\nError: {key_name} must have X,Y")
             try:
                 coords = tuple(int(x.strip()) for x in parts)
             except ValueError:
@@ -48,7 +44,6 @@ def parse_config(filename):
 
         en = conf["ENTRY"]
         ex = conf["EXIT"]
-
         for coord, name in [(en, "ENTRY"), (ex, "EXIT")]:
             if not (0 <= coord[0] < w and 0 <= coord[1] < h):
                 sys.exit(
@@ -57,55 +52,49 @@ def parse_config(filename):
         if en == ex:
             sys.exit("\nError: ENTRY and EXIT cannot be the same")
 
-        # valida PERFECT (booleano)
+        # valida o bolean perfect
         perfect_val = conf["PERFECT"].strip().lower()
-        if perfect_val == "true":
-            perfect = True
-        elif perfect_val == "false":
-            perfect = False
-        else:
+        if perfect_val not in ["true", "false"]:
             sys.exit("\nError: PERFECT must be True or False")
 
-        return w, h, en, ex, conf["OUTPUT_FILE"], perfect
+        # seleciona o algoritmo no config.txt
+        gen_algo = conf.get("GEN_ALGO", "backtracking").lower()
+        solve_algo = conf.get("SOLVE_ALGO", "bfs").lower()
 
+        return w, h, en, ex, conf["OUTPUT_FILE"], (perfect_val == "true"), gen_algo, solve_algo
     except Exception as e:
         sys.exit(f"\nConfig Error: {e}")
 
 
 def main():
-    """Main entry point for the a-maze-ing package."""
     if len(sys.argv) < 2 or len(sys.argv) > 3:
         sys.exit("\nUsage: a-maze-ing config.txt [seed]")
 
-    w, h, en, ex, out, perfect = parse_config(sys.argv[1])
-
-    # USER
-    if len(sys.argv) == 3:
-        try:
-            seed = int(sys.argv[2])
-        except ValueError:
-            sys.exit("\nError: Seed must be an integer.")
-    else:
-        seed = rd.randint(0, 999999)
+    w, h, en, ex, out, perfect, gen_algo, solve_algo = parse_config(
+        sys.argv[1])
+    seed = int(sys.argv[2]) if len(
+        sys.argv) == 3 and sys.argv[2].isdigit() else rd.randint(0, 999999)
 
     mg = MazeGenerator(w, h, en, ex, seed)
-    mg.generate(perfect)
+    mg.generate(perfect, method=gen_algo)
 
-    path = mg.solve(en, ex)
+    path = mg.solve(en, ex, method=solve_algo)
     if not path:
-        print("\nWarning: No path found (Check if ENTRY/EXIT is blocked)")
+        print("\nWarning: No path found")
 
     mg.export_to_file(out, en, ex, path)
 
     try:
         with open("seed_logs.txt", "a") as log:
             ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            log.write(f"[{ts}] Seed: {seed} | Size: {w}x{h} | File: {out}\n")
-    except Exception:
-        pass
+            log.write(
+                f"[{ts}] Seed: {seed} | Size: {w}x{h} | Algos:"
+                f"{gen_algo}/{solve_algo} | File: {out}\n"
+            )
+    except OSError as erro:
+        print(f"Log write failed: {erro}", file=sys.stderr)
 
-    print(f"\nMaze generated! Seed: {seed}")
-    print(f"Output saved to: {out}")
+    print(f"\nMaze generated! Seed: {seed}\nOutput: {out}")
 
 
 if __name__ == "__main__":
