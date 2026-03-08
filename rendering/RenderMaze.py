@@ -293,7 +293,9 @@ class RenderMaze():
 
         start = (cell_start[0] + tl[0] + cell_size // 2,
                  cell_start[1] + tl[1] + cell_size // 2)
-        end: tuple = (0,0)
+        self.path_start: tuple[int] = start
+
+        end: tuple = (0, 0)
 
         for move in moves:
             match move:
@@ -307,6 +309,8 @@ class RenderMaze():
                     end = (start[0] - cell_size, start[1])
             self.draw_thick_line(start, end, color, border_thickness)
             start = end
+
+        self.path_end: tuple[int] = end
 
 
 to_base_10: dict[str, int] = {
