@@ -11,16 +11,6 @@ class RenderMaze():
         self.mlx_ptr: c_void_p = self.mlx.mlx_init()
         self.win_dim: dict[str | int] = {}
 
-        self.path_alpha: float = 0.0
-        self.path_fade_speed: float = 0.03
-        self.show_path: bool = False
-        self.path_drawn: bool = False
-
-        self.cached_path_info: list[str] = []
-        self.cached_maze_lines: list[str] = []
-        self.path_color: int = 0
-        self.bg_color: int = 0
-
         try:
             if not isinstance(w, int):
                 raise TypeError('w')
@@ -57,6 +47,43 @@ class RenderMaze():
         self.mlx.mlx_hook(self.win_ptr, 3, 2, self.on_release, None)
         self.mlx.mlx_hook(self.win_ptr, 33, 0, self.quit_prg, None)
         self.img: dict[str | Any] = {}
+
+    def parse_maze(self, filename: str) -> None:
+        try:
+            file_lines: list[str] = []
+            maze_lines: list[str] = []
+            path_info: list[str] = []
+            with open(filename, 'r') as f:
+                while True:
+                    line: str = f.readline()
+                    if not line:
+                        break
+                    file_lines.append(line)
+
+            is_path_info: bool = False
+            for line in file_lines:
+                if not is_path_info:
+                    if line == '\n':
+                        is_path_info = True
+                        continue
+                    maze_lines.append(line)
+                else:
+                    if line == '\n':
+                        break
+                    path_info.append(line)
+            path_start: tuple[int] = (path_info[0].strip().split(',')[0],
+                                      path_info[0].strip().split(',')[1])
+            path_end: tuple[int] = (path_info[1].strip().split(',')[0],
+                                    path_info[1].strip().split(',')[1])
+            path_moves: str = path_info[2].strip()
+            self.maze_utils: dict[str, Any] = {
+                'maze_lines': maze_lines,
+                'path_start': path_start,
+                'path_end': path_end,
+                'path_moves': path_moves,
+            }
+        except Exception as e:
+            print(e)
 
     def create_image(self) -> None:
         self.img_ptr: c_void_p = self.mlx.mlx_new_image(self.mlx_ptr,
