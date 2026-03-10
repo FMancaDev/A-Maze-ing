@@ -100,8 +100,8 @@ def main():
     try:
         mg.export_to_file(out, en, ex, path)
         print(f"Output saved to: {out}")
-    except PermissionsError:
-        sys.exit(f"\nError: Permission denied when writing to {out}.")
+    except PermissionError:
+        sys.exit(f"\nError: Permission denied when writing to {out}\n")
     except Exception as erro:
         sys.exit(f"\nError saving file: {erro}")
 
