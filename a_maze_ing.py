@@ -97,7 +97,13 @@ def main():
     if not path:
         print("\nWarning: No path found (Check if ENTRY/EXIT is blocked)")
 
-    mg.export_to_file(out, en, ex, path)
+    try:
+        mg.export_to_file(out, en, ex, path)
+        print(f"Output saved to: {out}")
+    except PermissionsError:
+        sys.exit(f"\nError: Permission denied when writing to {out}.")
+    except Exception as erro:
+        sys.exit(f"\nError saving file: {erro}")
 
     # Logs de Seed
     try:
