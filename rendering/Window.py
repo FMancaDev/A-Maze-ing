@@ -77,8 +77,9 @@ class Window():
 
     def on_release(self, keycode: int, param: Any) -> None:
         """sets the key state as False upon release"""
-        self.keys_pressed[keycode] = False
-        print('Key released:', keycode)
+        if keycode in self.keys_pressed:
+            self.keys_pressed[keycode] = False
+            print('Key released:', keycode)
 
     def create_img(self) -> dict[str, Any]:
         img_ptr: c_void_p = self.mlx.mlx_new_image(

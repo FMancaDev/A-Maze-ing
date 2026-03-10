@@ -7,6 +7,7 @@ from .constants import (H_KEYCODE as H,
                         RIGHT_ARROW_KEYCODE as R,
                         CTRL_KEYCODE as CTRL)
 
+
 maze_themes: dict[str] = {
     'Los Angeles': [0xFF9933FF, 0xFFFFCC00, 0xFF33CCFF],
     'City Pop': [0xFFFF0066, 0xFF00FFEA, 0xFFFFFF66],
@@ -30,6 +31,8 @@ def draw_base(img: dict[str, Any], theme: list) -> None:
     render.draw_frame(maze.coordinates, maze.border_thickness,
                       theme[1], img)
     render.draw_maze(maze, theme[1], theme[1], img)
+    render.draw_triangle(maze, theme[1], img, reverse=False)
+    render.draw_triangle(maze, theme[1], img, reverse=True)
 
 
 img_stack: list[tuple] = []
@@ -43,16 +46,16 @@ for name in list(maze_themes.keys()):
     img_stack.append((background, path))
 
 
-
 i: int = 0
+
 
 def check_key(param: Any) -> None:
     global i, theme
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(L):
-        i = (i - 1) % len(list(maze_themes.keys()))
+        i = (i - 1) % len(img_stack)
 
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(R):
-        i = (i + 1) % len(list(maze_themes.keys()))
+        i = (i + 1) % len(img_stack)
 
     if win.keys_pressed.get(H, False):
         img = img_stack[i][1]
@@ -62,7 +65,6 @@ def check_key(param: Any) -> None:
     win.mlx.mlx_put_image_to_window(win.mlx_ptr,
                                     win.win_ptr,
                                     img['ptr'], 0, 0)
-
 
 
 win.mlx.mlx_loop_hook(win.mlx_ptr, check_key, None)

@@ -111,26 +111,38 @@ class Renderer():
                         match wall:
                             case 'N':
                                 self.draw_thick_line(start,
-                                                     (start[0] + maze.cell_size,
+                                                     (start[0] +
+                                                      maze.cell_size,
                                                       start[1]),
-                                                     color, cell_thickness, img)
+                                                     color, cell_thickness,
+                                                     img)
                             case 'E':
-                                self.draw_thick_line((start[0] + maze.cell_size,
+                                self.draw_thick_line((start[0] +
+                                                      maze.cell_size,
                                                      start[1]),
-                                                     (start[0] + maze.cell_size,
-                                                     start[1] + maze.cell_size),
-                                                     color, cell_thickness, img)
+                                                     (start[0] +
+                                                      maze.cell_size,
+                                                     start[1] +
+                                                     maze.cell_size),
+                                                     color, cell_thickness,
+                                                     img)
                             case 'S':
                                 self.draw_thick_line((start[0],
-                                                     start[1] + maze.cell_size),
-                                                     (start[0] + maze.cell_size,
-                                                     start[1] + maze.cell_size),
-                                                     color, cell_thickness, img)
+                                                     start[1] +
+                                                     maze.cell_size),
+                                                     (start[0] +
+                                                      maze.cell_size,
+                                                     start[1] +
+                                                     maze.cell_size),
+                                                     color, cell_thickness,
+                                                     img)
                             case 'W':
                                 self.draw_thick_line((start[0], start[1]),
                                                      (start[0],
-                                                     start[1] + maze.cell_size),
-                                                     color, cell_thickness, img)
+                                                     start[1] +
+                                                     maze.cell_size),
+                                                     color, cell_thickness,
+                                                     img)
                 start = (start[0] + maze.cell_size, start[1])
 
             start = (start_x, start[1] + maze.cell_size)
@@ -158,3 +170,37 @@ class Renderer():
             start = end
 
         self.path_end: tuple[int] = end
+
+    def draw_triangle(self, maze: Maze, color: int,
+                      img: dict[str, Any],
+                      reverse: bool) -> None:
+        triangle_size: int = round(maze.cell_size * 0.8)
+        triangle_padding: int = (maze.cell_size - triangle_size) // 2
+
+        i: int = 0
+
+        if not reverse:
+            tri_start = (maze.path_start[0] * maze.cell_size +
+                         maze.coordinates['tl'][0] + triangle_padding,
+                         maze.path_start[1] * maze.cell_size +
+                         maze.coordinates['tl'][1] + triangle_padding)
+            for x in range(tri_start[0], tri_start[0] + triangle_size):
+
+                for y in range(tri_start[1] + i, tri_start[1] +
+                               triangle_size - i):
+                    self.put_pixel(img['data'], x, y, color,
+                                   img['size_line'], img['bpp'])
+                i += 1
+        else:
+            tri_start = (maze.path_end[0] * maze.cell_size +
+                         maze.coordinates['tl'][0] + triangle_padding,
+                         maze.path_end[1] * maze.cell_size +
+                         maze.coordinates['tl'][1] + triangle_padding)
+
+            for x in range(tri_start[0] + triangle_size, tri_start[0], -1):
+
+                for y in range(tri_start[1] + i, tri_start[1] +
+                               triangle_size - i):
+                    self.put_pixel(img['data'], x, y, color,
+                                   img['size_line'], img['bpp'])
+                i += 1
