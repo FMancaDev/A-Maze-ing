@@ -36,11 +36,11 @@ class MazeGenerator:
         cy = self.height // 2
 
         pattern = [
-            "X X  XXX",
-            "X X    X",
-            "XXX  XXX",
-            "  X  X  ",
-            "  X  XXX",
+            "X X XXX",
+            "X X   X",
+            "XXX XXX",
+            "  X X  ",
+            "  X XXX",
         ]
 
         coords = []
