@@ -91,7 +91,6 @@ def main():
     print(f"Generating maze using: {gen_algo}...")
     mg.generate(perfect=perfect, method=gen_algo)
 
-    print("Solving maze (Shortest Path)...")
     path = mg.solve(en, ex)
 
     if not path:
