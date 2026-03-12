@@ -1,14 +1,14 @@
-from typing import Any, Optional
+from typing import Any
 from ctypes import c_uint
-from .Window import Window
-from .constants import HEX_TO_WALLS
-from .Maze import Maze
+from mazegen.generator import MazeGenerator
+from .constants import DEC_TO_WALLS as WALLS
 
 
 class Renderer():
-    def __init__(self, window: Window) -> None:
-        self.win_width: int = window.width
-        self.win_height: int = window.height
+
+    def __init__(self, win_width: int, win_height: int) -> None:
+        self.win_width: int = win_width
+        self.win_height: int = win_height
 
     def put_pixel(self, data: memoryview,
                   x: c_uint, y: c_uint,
@@ -25,182 +25,145 @@ class Renderer():
         data[offset + 2] = (color >> 16) & 0xFF
         data[offset + 3] = (color >> 24) & 0xFF
 
-    def draw_line(self, start: tuple, end: tuple,
-                  color: int, img: dict[str, Any]) -> None:
-        """using Bresenham\'s algorithm to draw lines"""
-        x0: int = start[0]
-        x1: int = end[0]
-        y0: int = start[1]
-        y1: int = end[1]
+    def draw_line(self, start: tuple[int], end: tuple[int],
+                  thickness: int, color: int, img: dict[str, Any]) -> None:
+        half: int = 1 if thickness < 2 else thickness // 2
 
-        dx: int = abs(x1 - x0)
-        dy: int = -abs(y1 - y0)
-        sx: int = 1 if x0 < x1 else -1
-        sy: int = 1 if y0 < y1 else -1
-        error: int = dx + dy
+        x0, y0 = start
+        x1, y1 = end
 
-        while True:
-            self.put_pixel(img['data'],
-                           x0, y0, color,
-                           img['size_line'],
-                           img['bpp'])
-            if x0 == x1 and y0 == y1:
-                break
-            e2: int = 2 * error
-            if e2 >= dy:
-                error += dy
-                x0 += sx
-            if e2 <= dx:
-                error += dx
-                y0 += sy
-
-    def draw_thick_line(self, start: tuple, end: tuple, color: int,
-                        thickness: int, img: dict[str, Any]) -> None:
-        dx: int = end[0] - start[0]
-        dy: int = end[1] - start[1]
-        half: int = thickness // 2
-        ex = half if dx >= 0 else -half  # extension on x axis
-        ey = half if dy >= 0 else -half  # extension on y axis
+        dx: int = x1 - x0
+        dy: int = y1 - y0
 
         if abs(dx) >= abs(dy):
-            for i in range(-half, half + 1):
-                self.draw_line((start[0] - ex, start[1] + i),
-                               (end[0] + ex, end[1] + i), color, img)
+            for i in range(x0, x1 + 1, thickness):
+                self.fill_rect((i - half, y0 - half),
+                               (i + half, y0 + half),
+                               color, img)
         else:
-            for i in range(-half, half + 1):
-                self.draw_line((start[0] + i, start[1] - ey),
-                               (end[0] + i, end[1] + ey), color, img)
+            for i in range(y0, y1 + 1, thickness):
+                self.fill_rect((x0 - half, i - half),
+                               (x0 + half, i + half),
+                               color, img)
 
-    def draw_frame(self, coor: dict[str, tuple],
+    def draw_frame(self, coor: dict[str, int],
                    thickness: int, color: int, img: dict[str, Any]) -> None:
 
-        self.draw_thick_line(coor['tl'], coor['tr'],
-                             color, thickness, img)
-        self.draw_thick_line(coor['tl'], coor['bl'],
-                             color, thickness, img)
-        self.draw_thick_line(coor['bl'], coor['br'],
-                             color, thickness, img)
-        self.draw_thick_line(coor['br'], coor['tr'],
-                             color, thickness, img)
+        self.draw_line(coor['tl'], coor['tr'], thickness, color, img)
+        self.draw_line(coor['tl'], coor['bl'], thickness, color, img)
+        self.draw_line(coor['bl'], coor['br'], thickness, color, img)
+        self.draw_line(coor['tr'], coor['br'], thickness, color, img)
 
-    def fill_rect(self, coor: dict, color: int, img) -> None:
-        for y in range(coor['y0'], coor['y1']):
-            for x in range(coor['x0'], coor['x1']):
+    def fill_rect(self, start: tuple[int], end: tuple[int],
+                  color: int, img: dict[str, Any]) -> None:
+        for y in range(start[1], end[1]):
+            for x in range(start[0], end[0]):
                 self.put_pixel(img['data'], x, y,
                                color, img['size_line'], img['bpp'])
 
-    def draw_maze(self, maze: Maze, color: int, fill_color: int,
-                  img: dict[str, Any]) -> None:
+    def draw_maze(self, maze: MazeGenerator,
+                  img: dict[str, Any], color: int) -> None:
+        margin: float = 0.9
+        active_w: int = round(self.win_width * margin)
+        # sets base margin for maze
+        active_h: int = round(self.win_height * margin)
 
-        start: tuple = maze.coordinates['tl']
-        cell_thickness: int = maze.border_thickness // 2
+        self.cell_size: int = 0  # cell size in px
 
-        start_x: int = start[0]
-        stripped_maze: list[str] = [x.strip('\n') for x in maze.maze_lines]
-        for line in stripped_maze:
-            for cell in line:
-                walls: Optional[tuple] = HEX_TO_WALLS[cell]
-                if walls == ('W', 'S', 'E', 'N'):
-                    self.fill_rect(
-                        {'x0': start[0], 'x1': start[0] + maze.cell_size,
-                         'y0': start[1], 'y1': start[1] + maze.cell_size},
-                        fill_color, img
-                    )
+        self.cell_size = active_w // maze.width
+        if self.cell_size * maze.height > active_h:
+            self.cell_size = active_h // maze.height
+        if self.cell_size < 3:
+            raise ValueError('Active width isn\'t enough '
+                             'to acomodate maze width')
+
+        maze_px_width: int = self.cell_size * maze.width
+        maze_px_height: int = self.cell_size * maze.height
+
+        padding_left: int = (self.win_width - maze_px_width) // 2
+        padding_top: int = (self.win_height - maze_px_height) // 2
+
+        self.coor: dict[str, tuple] = {
+            'tl': (padding_left, padding_top),
+            'tr': (padding_left + maze_px_width, padding_top),
+            'bl': (padding_left, padding_top + maze_px_height),
+            'br': (padding_left + maze_px_width, padding_top + maze_px_height),
+        }
+
+        self.border_thickness: int = (1 if self.cell_size < 5 else
+                                      self.cell_size // 5)
+
+        self.draw_frame(self.coor,
+                        self.border_thickness, color, img)
+
+        self.fill_42(maze.logo_cells, color, img)
+
+        self.draw_walls(maze.grid, color, img)
+
+    def draw_walls(self, maze_grid: list[list[int]],
+                   color: int, img: dict[str, Any]) -> None:
+        start: tuple[int] = self.coor['tl']
+        curr: tuple[int] = start
+        thickness: int = (1 if self.border_thickness < 2 else
+                          self.border_thickness // 2)
+        for row in maze_grid:
+            for cell in row:
+                walls: tuple[str] = WALLS[cell]
                 if walls:
                     for wall in walls:
+                        x, y = curr
                         match wall:
                             case 'N':
-                                self.draw_thick_line(start,
-                                                     (start[0] +
-                                                      maze.cell_size,
-                                                      start[1]),
-                                                     color, cell_thickness,
-                                                     img)
+                                self.draw_line((x, y),
+                                               (x + self.cell_size, y),
+                                               thickness,
+                                               color,
+                                               img)
                             case 'E':
-                                self.draw_thick_line((start[0] +
-                                                      maze.cell_size,
-                                                     start[1]),
-                                                     (start[0] +
-                                                      maze.cell_size,
-                                                     start[1] +
-                                                     maze.cell_size),
-                                                     color, cell_thickness,
-                                                     img)
-                            case 'S':
-                                self.draw_thick_line((start[0],
-                                                     start[1] +
-                                                     maze.cell_size),
-                                                     (start[0] +
-                                                      maze.cell_size,
-                                                     start[1] +
-                                                     maze.cell_size),
-                                                     color, cell_thickness,
-                                                     img)
+                                self.draw_line((x + self.cell_size, y),
+                                               (x + self.cell_size,
+                                                y + self.cell_size),
+                                               thickness,
+                                               color,
+                                               img)
                             case 'W':
-                                self.draw_thick_line((start[0], start[1]),
-                                                     (start[0],
-                                                     start[1] +
-                                                     maze.cell_size),
-                                                     color, cell_thickness,
-                                                     img)
-                start = (start[0] + maze.cell_size, start[1])
+                                self.draw_line((x, y),
+                                               (x, y + self.cell_size),
+                                               thickness,
+                                               color,
+                                               img)
+                            case 'S':
+                                self.draw_line((x, y + self.cell_size),
+                                               (x + self.cell_size,
+                                                y + self.cell_size),
+                                               thickness,
+                                               color,
+                                               img)
 
-            start = (start_x, start[1] + maze.cell_size)
+                curr = (curr[0] + self.cell_size, curr[1])
+            curr = (start[0], curr[1] + self.cell_size)
 
-    def draw_path(self, maze: Maze, color: int, img: dict[str, Any]) -> None:
+    def fill_42(self, coors_42: set[tuple[int]],
+                color: int, img: dict[str, Any]) -> None:
+        for cell in coors_42:
+            x0: int = cell[0] * self.cell_size + self.coor['tl'][0]
+            y0: int = cell[1] * self.cell_size + self.coor['tl'][1]
+            x1: int = x0 + self.cell_size
+            y1: int = y0 + self.cell_size
+            self.fill_rect((x0, y0), (x1, y1), color, img)
 
-        tl: tuple[int] = maze.coordinates['tl']
-        start = (maze.path_start[0] + tl[0] + maze.cell_size // 2,
-                 maze.path_start[1] + tl[1] + maze.cell_size // 2)
-        self.path_start: tuple[int] = start
+    def draw_path(self, maze: MazeGenerator,
+                  img: dict[str, Any], color: int) -> None:
+        path: list[tuple[int, int]] = maze.solve(maze.entry, maze.exit)
+        path_t: int = self.border_thickness
 
-        end: tuple = (0, 0)
-
-        for move in maze.path_moves:
-            match move:
-                case 'N':
-                    end = (start[0], start[1] - maze.cell_size)
-                case 'E':
-                    end = (start[0] + maze.cell_size, start[1])
-                case 'S':
-                    end = (start[0], start[1] + maze.cell_size)
-                case 'W':
-                    end = (start[0] - maze.cell_size, start[1])
-            self.draw_thick_line(start, end, color, maze.border_thickness, img)
-            start = end
-
-        self.path_end: tuple[int] = end
-
-    def draw_triangle(self, maze: Maze, color: int,
-                      img: dict[str, Any],
-                      reverse: bool) -> None:
-        triangle_size: int = round(maze.cell_size * 0.8)
-        triangle_padding: int = (maze.cell_size - triangle_size) // 2
-
-        i: int = 0
-
-        if not reverse:
-            tri_start = (maze.path_start[0] * maze.cell_size +
-                         maze.coordinates['tl'][0] + triangle_padding,
-                         maze.path_start[1] * maze.cell_size +
-                         maze.coordinates['tl'][1] + triangle_padding)
-            for x in range(tri_start[0], tri_start[0] + triangle_size):
-
-                for y in range(tri_start[1] + i, tri_start[1] +
-                               triangle_size - i):
-                    self.put_pixel(img['data'], x, y, color,
-                                   img['size_line'], img['bpp'])
-                i += 1
-        else:
-            tri_start = (maze.path_end[0] * maze.cell_size +
-                         maze.coordinates['tl'][0] + triangle_padding,
-                         maze.path_end[1] * maze.cell_size +
-                         maze.coordinates['tl'][1] + triangle_padding)
-
-            for x in range(tri_start[0] + triangle_size, tri_start[0], -1):
-
-                for y in range(tri_start[1] + i, tri_start[1] +
-                               triangle_size - i):
-                    self.put_pixel(img['data'], x, y, color,
-                                   img['size_line'], img['bpp'])
-                i += 1
+        for square in path:
+            center_p: tuple = (square[0] * self.cell_size + self.coor['tl'][0]
+                               + self.cell_size // 2,
+                               square[1] * self.cell_size + self.coor['tl'][1]
+                               + self.cell_size // 2,)
+            x0: int = center_p[0] - path_t
+            y0: int = center_p[1] - path_t
+            x1: int = center_p[0] + path_t
+            y1: int = center_p[1] + path_t
+            self.fill_rect((x0, y0), (x1, y1), color, img)

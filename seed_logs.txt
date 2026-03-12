@@ -9,3 +9,5 @@
 [2026-03-10 12:50:24] Seed: 254433 | Size: 50x50 | Algo: prim | File: maze.txt
 [2026-03-10 12:51:09] Seed: 683521 | Size: 50x50 | Algo: prim | File: maze.txt
 [2026-03-10 12:53:45] Seed: 543119 | Size: 50x50 | Algo: prim | File: maze.txt
+[2026-03-12 18:20:14] Seed: 529113 | Size: 20x50 | Algo: prim | File: maze.txt
+[2026-03-12 18:23:43] Seed: 586036 | Size: 15x10 | Algo: prim | File: maze.txt

@@ -1,6 +1,6 @@
 from mlx import Mlx
 from ctypes import c_void_p, c_uint
-from typing import Any, Callable
+from typing import Any
 import os
 from .constants import (ESC_KEYCODE, CTRL_KEYCODE,
                         C_KEYCODE, D_KEYCODE)
@@ -43,6 +43,11 @@ class Window():
                                                 self.width,
                                                 self.height,
                                                 self.name)
+        if hasattr(self.mlx, "mlx_do_key_autorepeatoff"):
+            try:
+                self.mlx.mlx_do_key_autorepeatoff(self.mlx_ptr)
+            except Exception:
+                pass
         self.keys_pressed: dict[str, bool] = {}
         self.mlx.mlx_hook(self.win_ptr, 2, 1, self.on_keypress, None)
         self.mlx.mlx_hook(self.win_ptr, 3, 2, self.on_release, None)
@@ -102,14 +107,8 @@ class Window():
             'fmt': fmt,
         }
 
-    def show_img(self, img: dict[str, Any]) -> None:
-        self.mlx.mlx_put_image_to_window(self.mlx_ptr,
-                                         self.win_ptr,
-                                         img['ptr'], 0, 0)
+    def create_copy(self, img: dict[str, Any]) -> dict:
 
-        def handler(param: Any) -> None:
-            self.mlx.mlx_put_image_to_window(self.mlx_ptr,
-                                             self.win_ptr,
-                                             img['ptr'], 0, 0)
-        self.mlx.mlx_hook(self.win_ptr, 12, 0x8000, handler, None)
-        self.img_handler: Callable = handler
+        overlay: dict[str, Any] = self.create_img()
+        overlay['data'] = img['data']
+        return overlay
