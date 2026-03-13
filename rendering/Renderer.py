@@ -27,6 +27,7 @@ class Renderer():
 
     def draw_line(self, start: tuple[int], end: tuple[int],
                   thickness: int, color: int, img: dict[str, Any]) -> None:
+
         half: int = 1 if thickness < 2 else thickness // 2
 
         x0, y0 = start
@@ -60,6 +61,19 @@ class Renderer():
             for x in range(start[0], end[0]):
                 self.put_pixel(img['data'], x, y,
                                color, img['size_line'], img['bpp'])
+
+    def fill_circle(self, start: tuple[int, int], end: tuple[int, int],
+                    color: int, img: dict[str, Any]) -> None:
+        radius: int = (end[0] - start[0]) // 2
+        cx: int = start[0] + radius
+        cy: int = start[1] + radius
+
+        for y in range(cy - radius, cy + radius + 1):
+            dy: int = y - cy
+            dx_limit: int = int((radius**2 - dy**2)**0.5)
+            for x in range(cx - dx_limit, cx + dx_limit + 1):
+                self.put_pixel(img['data'], x, y, color,
+                               img['size_line'], img['bpp'])
 
     def draw_maze(self, maze: MazeGenerator,
                   img: dict[str, Any], color: int) -> None:
@@ -99,6 +113,8 @@ class Renderer():
         self.fill_42(maze.logo_cells, color, img)
 
         self.draw_walls(maze.grid, color, img)
+
+        self.draw_start_end_points(maze, img, color)
 
     def draw_walls(self, maze_grid: list[list[int]],
                    color: int, img: dict[str, Any]) -> None:
@@ -155,9 +171,9 @@ class Renderer():
     def draw_path(self, maze: MazeGenerator,
                   img: dict[str, Any], color: int) -> None:
         path: list[tuple[int, int]] = maze.solve(maze.entry, maze.exit)
-        path_t: int = self.border_thickness
+        path_t: int = round(self.border_thickness * 1.2)
 
-        for square in path:
+        for i, square in enumerate(path):
             center_p: tuple = (square[0] * self.cell_size + self.coor['tl'][0]
                                + self.cell_size // 2,
                                square[1] * self.cell_size + self.coor['tl'][1]
@@ -166,4 +182,36 @@ class Renderer():
             y0: int = center_p[1] - path_t
             x1: int = center_p[0] + path_t
             y1: int = center_p[1] + path_t
-            self.fill_rect((x0, y0), (x1, y1), color, img)
+            self.fill_circle((x0, y0), (x1, y1), color, img)
+
+    def draw_start_end_points(self, maze: MazeGenerator,
+                              img: dict[str, Any], color: int) -> None:
+        start: tuple[int, int] = (maze.entry[0] * self.cell_size
+                                  + self.coor['tl'][0],
+                                  maze.entry[1] * self.cell_size
+                                  + self.coor['tl'][1])
+
+        end: tuple[int, int] = (maze.exit[0] * self.cell_size
+                                + self.coor['tl'][0],
+                                maze.exit[1] * self.cell_size
+                                + self.coor['tl'][1])
+
+        tri_size: int = round(self.cell_size * 0.5)
+        padding: int = (self.cell_size - tri_size) // 2
+        i: int = 0
+
+        for x in range(start[0] + padding, start[0] + padding + tri_size):
+            for y in range(start[1] + padding + i,
+                           start[1] + padding + tri_size - i):
+                self.put_pixel(img['data'], x, y, color,
+                               img['size_line'], img['bpp'])
+            i += 1
+
+        i = 0
+
+        for x in range(end[0] + padding + tri_size, end[0] + padding, -1):
+            for y in range(end[1] + padding + i,
+                           end[1] + padding + tri_size - i):
+                self.put_pixel(img['data'], x, y, color,
+                               img['size_line'], img['bpp'])
+            i += 1

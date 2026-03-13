@@ -110,5 +110,5 @@ class Window():
     def create_copy(self, img: dict[str, Any]) -> dict:
 
         overlay: dict[str, Any] = self.create_img()
-        overlay['data'] = img['data']
+        overlay['data'][:] = img['data'][:]
         return overlay
