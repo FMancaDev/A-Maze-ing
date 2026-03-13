@@ -29,7 +29,6 @@ if len(sys.argv) < 2 or len(sys.argv) > 3:
 
 cfg: MazeConfig = parse_config(sys.argv[1])
 seed: int = int(sys.argv[2] if len(sys.argv) == 3 else rd.randint(0, 999999))
-print(cfg)
 
 # ============= Initialization =============
 
@@ -54,6 +53,7 @@ last_theme_change: float = 0
 
 
 def change_maze() -> None:
+    """will randomly generate a new maze following active sizes"""
     global maze, themes, w, h, active_theme
     win.mlx.mlx_clear_window(win.mlx_ptr, win.win_ptr)
     maze = MazeGenerator(w, h, entry, exit, rd.randint(0, 999999))
@@ -63,6 +63,7 @@ def change_maze() -> None:
 
 
 def switch_theme(reverse: bool = False):
+    """Will circle between themes"""
     global theme_index, active_theme, last_theme_change
     now = perf_counter()
     if now - last_theme_change < theme_delay:
@@ -77,6 +78,7 @@ def switch_theme(reverse: bool = False):
 
 
 def key_actions(param: Any) -> None:
+    """base function for key events"""
     global maze, w, h, active_theme, exit
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(RIGHT):
         switch_theme()
@@ -99,6 +101,20 @@ def key_actions(param: Any) -> None:
         exit = (exit[0] - 1, exit[1]) if exit[0] >= w else exit
         change_maze()
     if win.keys_pressed.get(H):
+        show_img(True)
+    else:
+        show_img(False)
+
+
+
+def show_img(overlay: bool = False) -> None:
+    global themes
+    if overlay:
+        if not active_theme.get('path'):
+            path: dict[str, Any] = win.create_copy(active_theme['bg'])
+            color: int = maze_themes[theme_names[theme_index]][2]
+            render.draw_path(maze, path, color)
+            active_theme['path'] = path
         win.mlx.mlx_put_image_to_window(win.mlx_ptr,
                                         win.win_ptr,
                                         active_theme['path']['ptr'],

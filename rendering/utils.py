@@ -93,8 +93,6 @@ def load_themes(maze: MazeGenerator,
         bg: dict[str, Any] = win.create_img()
         render.fill_rect((0, 0), (win.width, win.height), colors[0], bg)
         render.draw_maze(maze, bg, colors[1])
-        path_overlay: dict[str, Any] = win.create_copy(bg)
-        render.draw_path(maze, path_overlay, colors[2])
-        img_stack[name] = {'bg': bg, 'path': path_overlay}
+        img_stack[name] = {'bg': bg}
 
     return img_stack
