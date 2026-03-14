@@ -22,13 +22,10 @@ class MazeGenerator:
         self.entry = entry
         self.exit = exit_coords
         self.seed = seed
+
         self.logo_cells: Set[Tuple[int, int]] = set()
-        # flat array em vez de lista de listas — muito mais rapido
         self.grid: list[int] = [15] * (width * height)
 
-    # ------------------------------------------------------------------
-    # Helper inline
-    # ------------------------------------------------------------------
     def _carve(self, x1: int, y1: int, x2: int, y2: int,
                wall: int, opp: int) -> None:
         w = self.width
@@ -58,9 +55,6 @@ class MazeGenerator:
                         coords.append((x, y))
         return coords
 
-    # ------------------------------------------------------------------
-    # Geracao principal
-    # ------------------------------------------------------------------
     def generate(self, perfect: bool = True,
                  method: str = "backtracking") -> None:
         random.seed(self.seed)
@@ -87,9 +81,6 @@ class MazeGenerator:
 
         self._seal_logo()
 
-    # ------------------------------------------------------------------
-    # Backtracking com gerador Python
-    # ------------------------------------------------------------------
     def _run_backtracking(
         self, visited: Set[Tuple[int, int]]
     ) -> Generator[Tuple[int, int], None, None]:
@@ -120,9 +111,6 @@ class MazeGenerator:
             else:
                 stack.pop()
 
-    # ------------------------------------------------------------------
-    # Prim com gerador — pop aleatorio em O(1)
-    # ------------------------------------------------------------------
     def _run_prim(
         self, visited: Set[Tuple[int, int]]
     ) -> Generator[Tuple[int, int], None, None]:
@@ -147,7 +135,6 @@ class MazeGenerator:
         _add_walls(*self.entry)
 
         while walls:
-            # troca com o ultimo e faz pop — O(1) em vez de O(n)
             idx = random.randrange(len(walls))
             walls[idx], walls[-1] = walls[-1], walls[idx]
             x1, y1, x2, y2, w, ow = walls.pop()
@@ -158,9 +145,6 @@ class MazeGenerator:
                 _add_walls(x2, y2)
                 yield (x2, y2)
 
-    # ------------------------------------------------------------------
-    # Imperfect: remove paredes para criar ciclos
-    # ------------------------------------------------------------------
     def _make_imperfect(self) -> None:
         """Remove paredes aleatorias para criar loops no labirinto."""
         dirs = list(self.DIRECTIONS.values())
@@ -192,9 +176,6 @@ class MazeGenerator:
                     count += 1
                     break
 
-    # ------------------------------------------------------------------
-    # Seal logo
-    # ------------------------------------------------------------------
     def _seal_logo(self) -> None:
         """Forca o logo 42 a ficar fechado."""
         w = self.width
@@ -205,9 +186,6 @@ class MazeGenerator:
                 if 0 <= nx < self.width and 0 <= ny < self.height:
                     self.grid[ny * w + nx] |= opp
 
-    # ------------------------------------------------------------------
-    # BFS solve
-    # ------------------------------------------------------------------
     def solve(
         self, start: Tuple[int, int], end: Tuple[int, int]
     ) -> List[Tuple[int, int]]:
@@ -243,9 +221,6 @@ class MazeGenerator:
             curr = parent[curr]
         return path[::-1]
 
-    # ------------------------------------------------------------------
-    # grid_rows: compatibilidade com o renderer que usa maze.grid[y][x]
-    # ------------------------------------------------------------------
     @property
     def grid_rows(self) -> List[List[int]]:
         """Vista 2D do grid flat. Substitui maze.grid no renderer."""
