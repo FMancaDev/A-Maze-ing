@@ -39,7 +39,7 @@ h: int = cfg.height
 entry: tuple[int, int] = cfg.entry
 exit: tuple[int, int] = cfg.exit
 maze = MazeGenerator(w, h, cfg.entry, cfg.exit, seed)
-maze.generate()
+maze.generate(perfect=cfg.perfect, method=cfg.gen_algo)
 
 themes: dict[str, dict[str, dict]] = load_themes(maze, render,
                                                  win, maze_themes)
@@ -57,7 +57,7 @@ def change_maze() -> None:
     global maze, themes, w, h, active_theme
     win.mlx.mlx_clear_window(win.mlx_ptr, win.win_ptr)
     maze = MazeGenerator(w, h, entry, exit, rd.randint(0, 999999))
-    maze.generate()
+    maze.generate(perfect=cfg.perfect, method=cfg.gen_algo)
     themes = load_themes(maze, render, win, maze_themes)
     active_theme = themes[theme_names[theme_index]]
 
@@ -104,7 +104,6 @@ def key_actions(param: Any) -> None:
         show_img(True)
     else:
         show_img(False)
-
 
 
 def show_img(overlay: bool = False) -> None:

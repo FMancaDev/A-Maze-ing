@@ -39,10 +39,10 @@ class Window():
                     self.name: str = "A_Maze_Ing"
 
         self.win_ptr: c_void_p = self.mlx.mlx_new_window(
-                                                self.mlx_ptr,
-                                                self.width,
-                                                self.height,
-                                                self.name)
+            self.mlx_ptr,
+            self.width,
+            self.height,
+            self.name)
         if hasattr(self.mlx, "mlx_do_key_autorepeatoff"):
             try:
                 self.mlx.mlx_do_key_autorepeatoff(self.mlx_ptr)

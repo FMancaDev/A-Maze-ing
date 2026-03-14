@@ -1,5 +1,5 @@
 import random
-from typing import List, Tuple, Set
+from typing import Generator, List, Tuple, Set
 from collections import deque
 
 
@@ -8,7 +8,6 @@ class MazeGenerator:
     EAST = 2   # 0010
     SOUTH = 4  # 0100
     WEST = 8   # 1000
-
     DIRECTIONS = {
         "N": (0, -1, NORTH, SOUTH),
         "S": (0, 1, SOUTH, NORTH),
@@ -18,23 +17,28 @@ class MazeGenerator:
 
     def __init__(self, width: int, height: int, entry: Tuple[int, int],
                  exit_coords: Tuple[int, int], seed: int = 42) -> None:
-        """Initialize the maze generator"""
         self.width = width
         self.height = height
         self.entry = entry
         self.exit = exit_coords
         self.seed = seed
-
         self.logo_cells: Set[Tuple[int, int]] = set()
+        # flat array em vez de lista de listas — muito mais rapido
+        self.grid: list[int] = [15] * (width * height)
 
-        self.grid = [[15 for _ in range(width)] for _ in range(height)]
+    # ------------------------------------------------------------------
+    # Helper inline
+    # ------------------------------------------------------------------
+    def _carve(self, x1: int, y1: int, x2: int, y2: int,
+               wall: int, opp: int) -> None:
+        w = self.width
+        self.grid[y1 * w + x1] &= ~wall
+        self.grid[y2 * w + x2] &= ~opp
 
     def _get_42_coords(self) -> List[Tuple[int, int]]:
-        """draw 42 logo in center of maze"""
-
+        """Desenha o logo 42 no centro do labirinto."""
         cx = self.width // 2
         cy = self.height // 2
-
         pattern = [
             "X X XXX",
             "X X   X",
@@ -42,204 +46,226 @@ class MazeGenerator:
             "  X X  ",
             "  X XXX",
         ]
-
         coords = []
-
         start_x = cx - len(pattern[0]) // 2
         start_y = cy - len(pattern) // 2
-
         for dy, row in enumerate(pattern):
             for dx, c in enumerate(row):
                 if c == "X":
                     x = start_x + dx
                     y = start_y + dy
-
                     if 0 <= x < self.width and 0 <= y < self.height:
                         coords.append((x, y))
-
         return coords
 
+    # ------------------------------------------------------------------
+    # Geracao principal
+    # ------------------------------------------------------------------
     def generate(self, perfect: bool = True,
                  method: str = "backtracking") -> None:
-        """Generate the maze using the selected algorithm"""
         random.seed(self.seed)
         visited: Set[Tuple[int, int]] = set()
 
-        # define logo
         if self.width >= 10 and self.height >= 8:
             self.logo_cells = set(self._get_42_coords())
-
-            for x, y in self.logo_cells:
-                if (x, y) != self.entry and (x, y) != self.exit:
-                    visited.add((x, y))
+            for cell in self.logo_cells:
+                if cell != self.entry and cell != self.exit:
+                    visited.add(cell)
         else:
-            print(
-                f"[Notice] Maze {self.width}x{self.height} "
-                f"too small for '42' logo."
-            )
+            print(f"[Notice] Maze {self.width}x{self.height} "
+                  f"too small for '42' logo.")
 
-        # algoritmo
         if method.lower() == "prim":
-            self._run_prim(visited)
+            for _ in self._run_prim(visited):
+                pass
         else:
-            self._run_backtracking(visited)
+            for _ in self._run_backtracking(visited):
+                pass
 
         if not perfect:
             self._make_imperfect()
 
         self._seal_logo()
 
-    def _run_backtracking(self, visited: Set[Tuple[int, int]]) -> None:
-        """"Generte the maze using the recursive backtraking (dfs) algorithm"""
+    # ------------------------------------------------------------------
+    # Backtracking com gerador Python
+    # ------------------------------------------------------------------
+    def _run_backtracking(
+        self, visited: Set[Tuple[int, int]]
+    ) -> Generator[Tuple[int, int], None, None]:
+        """DFS iterativo com gerador. Cada yield devolve a celula atual."""
+        dirs = list(self.DIRECTIONS.values())
         stack = [self.entry]
         visited.add(self.entry)
+        width = self.width
+        height = self.height
+        logo = self.logo_cells
 
         while stack:
             cx, cy = stack[-1]
-            neighbors = []
-
-            for dx, dy, wall, opp_wall in self.DIRECTIONS.values():
-                nx, ny = cx + dx, cy + dy
-
-                if (
-                    0 <= nx < self.width
-                    and 0 <= ny < self.height
-                    and (nx, ny) not in visited
-                    and (nx, ny) not in self.logo_cells
-                ):
-                    neighbors.append((nx, ny, wall, opp_wall))
-
+            neighbors = [
+                (cx + dx, cy + dy, w, ow)
+                for dx, dy, w, ow in dirs
+                if (0 <= cx + dx < width
+                    and 0 <= cy + dy < height
+                    and (cx + dx, cy + dy) not in visited
+                    and (cx + dx, cy + dy) not in logo)
+            ]
             if neighbors:
-                nx, ny, wall, opp_wall = random.choice(neighbors)
-
-                self.grid[cy][cx] &= ~wall
-                self.grid[ny][nx] &= ~opp_wall
-
+                nx, ny, wall, opp = random.choice(neighbors)
+                self._carve(cx, cy, nx, ny, wall, opp)
                 visited.add((nx, ny))
                 stack.append((nx, ny))
+                yield (nx, ny)
             else:
                 stack.pop()
 
-    def _run_prim(self, visited: Set[Tuple[int, int]]) -> None:
-        """Generate the maze using a randomized version of Prim's algorithm"""
-        walls = []
+    # ------------------------------------------------------------------
+    # Prim com gerador — pop aleatorio em O(1)
+    # ------------------------------------------------------------------
+    def _run_prim(
+        self, visited: Set[Tuple[int, int]]
+    ) -> Generator[Tuple[int, int], None, None]:
+        """Prim randomizado com gerador."""
+        dirs = list(self.DIRECTIONS.values())
+        walls: list = []
+        width = self.width
+        height = self.height
+        logo = self.logo_cells
 
-        def add_walls(x: int, y: int) -> None:
-            for dx, dy, w, ow in self.DIRECTIONS.values():
+        def _add_walls(x: int, y: int) -> None:
+            for dx, dy, w, ow in dirs:
                 nx, ny = x + dx, y + dy
-
-                if (
-                    0 <= nx < self.width
-                    and 0 <= ny < self.height
-                    and (nx, ny) not in visited
-                    and (nx, ny) not in self.logo_cells
-                ):
+                if (0 <= nx < width
+                        and 0 <= ny < height
+                        and (nx, ny) not in visited
+                        and (nx, ny) not in logo):
                     walls.append((x, y, nx, ny, w, ow))
 
         if self.entry not in visited:
             visited.add(self.entry)
-
-        add_walls(*self.entry)
+        _add_walls(*self.entry)
 
         while walls:
+            # troca com o ultimo e faz pop — O(1) em vez de O(n)
             idx = random.randrange(len(walls))
-            x1, y1, x2, y2, w, ow = walls.pop(idx)
+            walls[idx], walls[-1] = walls[-1], walls[idx]
+            x1, y1, x2, y2, w, ow = walls.pop()
 
             if (x2, y2) not in visited:
-                self.grid[y1][x1] &= ~w
-                self.grid[y2][x2] &= ~ow
-
+                self._carve(x1, y1, x2, y2, w, ow)
                 visited.add((x2, y2))
-                add_walls(x2, y2)
+                _add_walls(x2, y2)
+                yield (x2, y2)
 
+    # ------------------------------------------------------------------
+    # Imperfect: remove paredes para criar ciclos
+    # ------------------------------------------------------------------
     def _make_imperfect(self) -> None:
-        """Randomly remove walls to create loops in the maze"""
-        num_extra = (self.width * self.height) // 20
+        """Remove paredes aleatorias para criar loops no labirinto."""
+        dirs = list(self.DIRECTIONS.values())
+        num_extra = max(1, (self.width * self.height) // 20)
+        grid = self.grid
+        width = self.width
+        logo = self.logo_cells
+
+        candidates = [
+            (x, y)
+            for y in range(self.height)
+            for x in range(self.width)
+            if (x, y) not in logo
+        ]
+        random.shuffle(candidates)
+
         count = 0
-
-        while count < num_extra:
-            x = random.randint(0, self.width - 1)
-            y = random.randint(0, self.height - 1)
-
-            d = random.choice(list(self.DIRECTIONS.values()))
-            nx, ny = x + d[0], y + d[1]
-
-            if (
-                0 <= nx < self.width
-                and 0 <= ny < self.height
-                and (x, y) not in self.logo_cells
-                and (nx, ny) not in self.logo_cells
-            ):
-                if self.grid[y][x] & d[2]:
-                    self.grid[y][x] &= ~d[2]
-                    self.grid[ny][nx] &= ~d[3]
-                    count += 1
-
-    def _seal_logo(self) -> None:
-        """force the 42 logo to stay closed"""
-        for x, y in self.logo_cells:
-            self.grid[y][x] = 15
-
-            # fecha também vizinhos que possam ter aberto
-            for dx, dy, wall, opp_wall in self.DIRECTIONS.values():
+        for x, y in candidates:
+            if count >= num_extra:
+                break
+            random.shuffle(dirs)
+            for dx, dy, wall, opp in dirs:
                 nx, ny = x + dx, y + dy
+                if (0 <= nx < width
+                        and 0 <= ny < self.height
+                        and (nx, ny) not in logo
+                        and grid[y * width + x] & wall):
+                    self._carve(x, y, nx, ny, wall, opp)
+                    count += 1
+                    break
 
+    # ------------------------------------------------------------------
+    # Seal logo
+    # ------------------------------------------------------------------
+    def _seal_logo(self) -> None:
+        """Forca o logo 42 a ficar fechado."""
+        w = self.width
+        for x, y in self.logo_cells:
+            self.grid[y * w + x] = 15
+            for dx, dy, _wall, opp in self.DIRECTIONS.values():
+                nx, ny = x + dx, y + dy
                 if 0 <= nx < self.width and 0 <= ny < self.height:
-                    self.grid[ny][nx] |= opp_wall
+                    self.grid[ny * w + nx] |= opp
 
+    # ------------------------------------------------------------------
+    # BFS solve
+    # ------------------------------------------------------------------
     def solve(
         self, start: Tuple[int, int], end: Tuple[int, int]
     ) -> List[Tuple[int, int]]:
-        """algoriyhm to find the shortest path"""
-        parent = {start: None}
+        """BFS — devolve o caminho mais curto."""
+        parent: dict = {start: None}
         queue = deque([start])
+        width = self.width
+        height = self.height
+        grid = self.grid
+        dirs = list(self.DIRECTIONS.values())
 
         while queue:
-            curr = queue.popleft()
-
-            if curr == end:
+            cx, cy = queue.popleft()
+            if (cx, cy) == end:
                 break
-
-            cx, cy = curr
-
-            for dx, dy, wall, _ in self.DIRECTIONS.values():
-                nx, ny = cx + dx, cy + dy
-
-                if 0 <= nx < self.width and 0 <= ny < self.height:
-                    if not (self.grid[cy][cx] & wall) and (nx, ny) not in parent:
-                        parent[(nx, ny)] = curr
+            cell_val = grid[cy * width + cx]
+            for dx, dy, wall, _ in dirs:
+                if not (cell_val & wall):
+                    nx, ny = cx + dx, cy + dy
+                    if (0 <= nx < width
+                            and 0 <= ny < height
+                            and (nx, ny) not in parent):
+                        parent[(nx, ny)] = (cx, cy)
                         queue.append((nx, ny))
 
         if end not in parent:
             return []
 
         path = []
-        curr = end
-
+        curr: Tuple[int, int] | None = end
         while curr is not None:
             path.append(curr)
             curr = parent[curr]
-
         return path[::-1]
 
-    def get_path_string(self, path: List[Tuple[int, int]]) -> str:
-        """covert a list of path coordinates int a string of movement """
-        res = ""
+    # ------------------------------------------------------------------
+    # grid_rows: compatibilidade com o renderer que usa maze.grid[y][x]
+    # ------------------------------------------------------------------
+    @property
+    def grid_rows(self) -> List[List[int]]:
+        """Vista 2D do grid flat. Substitui maze.grid no renderer."""
+        w = self.width
+        return [self.grid[y * w:(y + 1) * w] for y in range(self.height)]
 
+    def get_path_string(self, path: List[Tuple[int, int]]) -> str:
+        res = []
         for i in range(len(path) - 1):
             dx = path[i + 1][0] - path[i][0]
             dy = path[i + 1][1] - path[i][1]
-
             if dx == 1:
-                res += "E"
+                res.append("E")
             elif dx == -1:
-                res += "W"
+                res.append("W")
             elif dy == 1:
-                res += "S"
+                res.append("S")
             elif dy == -1:
-                res += "N"
-
-        return res
+                res.append("N")
+        return "".join(res)
 
     def export_to_file(
         self,
@@ -248,14 +274,14 @@ class MazeGenerator:
         exit_coords: Tuple[int, int],
         path: List[Tuple[int, int]],
     ) -> None:
-        """Write the maze grid and coordinates and slution path to a file"""
-
+        w = self.width
         with open(filename, "w") as f:
-            for row in self.grid:
-                f.write("".join(f"{c:X}" for c in row) + "\n")
-
+            for y in range(self.height):
+                f.write("".join(
+                    f"{self.grid[y * w + x]:X}" for x in range(w)
+                ) + "\n")
             f.write(
-                f"\n{entry[0]},{entry[1]}\n{exit_coords[0]},{exit_coords[1]}\n"
+                f"\n{entry[0]},{entry[1]}\n"
+                f"{exit_coords[0]},{exit_coords[1]}\n"
             )
-
             f.write(self.get_path_string(path) + "\n")
