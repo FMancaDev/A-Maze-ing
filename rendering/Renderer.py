@@ -49,27 +49,14 @@ class Renderer():
 
     def draw_line(self, start: tuple[int, int], end: tuple[int, int],
                   thickness: int, color: int, img: dict[str, Any]) -> None:
-        thickness = thickness if thickness % 2 == 0 else thickness + 1
-        half: int = 1 if thickness < 2 else thickness // 2
+
+        half: int = max(1, thickness // 2)
 
         x0, y0 = start
         x1, y1 = end
 
-        dx = x1 - x0
-        dy = y1 - y0
-
-        if abs(dx) >= abs(dy):
-            step = max(1, thickness)
-            for i in range(x0, x1 + 1, step):
-                self.fill_rect((i - half, y0 - half),
-                               (i + half, y0 + half),
-                               color, img)
-        else:
-            step = max(1, thickness)
-            for i in range(y0, y1 + 1, step):
-                self.fill_rect((x0 - half, i - half),
-                               (x0 + half, i + half),
-                               color, img)
+        self.fill_rect((x0 - half, y0 - half), (x1 + half, y1 + half),
+                       color, img)
 
     def draw_frame(self, coor: dict[str, tuple],
                    thickness: int, color: int, img: dict[str, Any]) -> None:
@@ -99,7 +86,8 @@ class Renderer():
         # sets base margin for maze
         active_h: int = round(self.win_height * margin)
 
-        self.cell_size: int = active_w // maze.width
+        self.cell_size: int = (active_w // maze.width if maze.width > 0 else
+                               active_w)
         if self.cell_size * maze.height > active_h:
             self.cell_size = active_h // maze.height
         if self.cell_size < 3:
@@ -144,17 +132,21 @@ class Renderer():
                 y = tl_y + row_idx * cs
                 for wall in walls:
                     if wall == 'N':
-                        self.fill_rect((x,      y - t),
-                                       (x + cs, y + t), color, img)
+                        print('N')
+                        self.draw_line((x, y), (x + cs, y),
+                                       t, color, img)
                     elif wall == 'S':
-                        self.fill_rect((x,      y + cs - t),
-                                       (x + cs, y + cs + t), color, img)
+                        print('S')
+                        self.draw_line((x, y + cs), (x + cs, y + cs),
+                                       t, color, img)
                     elif wall == 'W':
-                        self.fill_rect((x - t,      y),
-                                       (x + t, y + cs), color, img)
+                        print('W')
+                        self.draw_line((x, y), (x, y + cs),
+                                       t, color, img)
                     elif wall == 'E':
-                        self.fill_rect((x + cs - t,      y),
-                                       (x + cs + t, y + cs), color, img)
+                        print('E')
+                        self.draw_line((x + cs, y), (x + cs, y + cs),
+                                       t, color, img)
 
     def fill_42(self, coors_42: set[tuple[int, int]],
                 color: int, img: dict[str, Any]) -> None:

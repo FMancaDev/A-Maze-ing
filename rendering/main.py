@@ -1,7 +1,7 @@
 import sys
 import random as rd
-from typing import Any, Generator
-from .utils import MazeConfig, parse_config, load_themes, mix_colors
+from typing import Any
+from .utils import MazeConfig, parse_config, load_themes
 from mazegen.generator import MazeGenerator
 from .Renderer import Renderer
 from .Window import Window
@@ -85,21 +85,25 @@ def key_actions(param: Any) -> None:
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(LEFT):
         switch_theme(True)
     if win.keys_pressed.get(R):
+        reset_entry_exit()
         change_maze()
     if win.keys_pressed.get(UP):
         h += 1
+        reset_entry_exit()
         change_maze()
     if win.keys_pressed.get(DOWN):
-        h -= 1
-        exit = (exit[0], exit[1] - 1) if exit[1] >= h else exit
+        h = h - 1 if h > 3 else h
+        reset_entry_exit()
         change_maze()
     if win.keys_pressed.get(RIGHT) and not win.keys_pressed.get(CTRL):
         w += 1
+        reset_entry_exit()
         change_maze()
     if win.keys_pressed.get(LEFT) and not win.keys_pressed.get(CTRL):
-        w -= 1
-        exit = (exit[0] - 1, exit[1]) if exit[0] >= w else exit
+        w = w - 1 if w > 3 else w
+        reset_entry_exit()
         change_maze()
+
     if win.keys_pressed.get(H):
         show_img(True)
     else:
@@ -125,6 +129,18 @@ def show_img(overlay: bool = False) -> None:
                                         0, 0)
 
 
+def reset_entry_exit() -> None:
+    global entry, exit
+    available_coor = []
+    for y in range(h):
+        for x in range(w):
+            available_coor.append((x, y))
+    available_coor = [x for x in available_coor if x not in maze.logo_cells]
+    entry = rd.choice(available_coor)
+    available_coor = [x for x in available_coor if x != entry]
+    exit = rd.choice(available_coor)
+
+
 # ============= First Render =============
 
 win.mlx.mlx_put_image_to_window(win.mlx_ptr,
@@ -132,8 +148,7 @@ win.mlx.mlx_put_image_to_window(win.mlx_ptr,
                                 active_theme['bg']['ptr'],
                                 0, 0)
 
-
 # ============= Loops =============
-print(0xFFFFFFFF)
+reset_entry_exit()
 win.mlx.mlx_loop_hook(win.mlx_ptr, key_actions, None)
 win.mlx.mlx_loop(win.mlx_ptr)
