@@ -49,7 +49,7 @@ class Renderer():
 
     def draw_line(self, start: tuple[int, int], end: tuple[int, int],
                   thickness: int, color: int, img: dict[str, Any]) -> None:
-
+        thickness = thickness if thickness % 2 == 0 else thickness + 1
         half: int = 1 if thickness < 2 else thickness // 2
 
         x0, y0 = start

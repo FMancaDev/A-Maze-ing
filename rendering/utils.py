@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from mazegen.generator import MazeGenerator
 from .Renderer import Renderer
 from . Window import Window
-from typing import Any
+from typing import Any, Generator
 import sys
 
 
@@ -96,3 +96,31 @@ def load_themes(maze: MazeGenerator,
         img_stack[name] = {'bg': bg}
 
     return img_stack
+
+
+def unpack_color(color: int) -> tuple[int, int, int, int]:
+    a: int = (color >> 24) & 0xFF
+    r: int = (color >> 16) & 0xFF
+    g: int = (color >> 8) & 0xFF
+    b: int = color & 0xFF
+    return a, r, g, b
+
+
+def pack_color(a: int, r: int, g: int, b: int) -> int:
+    return (a << 24) | (r << 16) | (g << 8) | b
+
+
+def mix_colors(color1: int, color2: int, steps: int) -> Generator[int]:
+    a1, r1, g1, b1 = unpack_color(color1)
+    a2, r2, g2, b2 = unpack_color(color2)
+    dr: int = (r2 - r1) / steps
+    dg: int = (g2 - g1) / steps
+    db: int = (b2 - b1) / steps
+
+    a3, r3, g3, b3 = a1, r1, g1, b1
+
+    for _ in range(steps + 1):
+        yield pack_color(int(a3), int(r3), int(g3), int(b3))
+        r3 += dr
+        g3 += dg
+        b3 += db

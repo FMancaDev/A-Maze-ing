@@ -1,7 +1,7 @@
 import sys
 import random as rd
-from typing import Any
-from .utils import MazeConfig, parse_config, load_themes
+from typing import Any, Generator
+from .utils import MazeConfig, parse_config, load_themes, mix_colors
 from mazegen.generator import MazeGenerator
 from .Renderer import Renderer
 from .Window import Window
@@ -134,6 +134,6 @@ win.mlx.mlx_put_image_to_window(win.mlx_ptr,
 
 
 # ============= Loops =============
-
+print(0xFFFFFFFF)
 win.mlx.mlx_loop_hook(win.mlx_ptr, key_actions, None)
 win.mlx.mlx_loop(win.mlx_ptr)
