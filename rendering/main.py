@@ -132,6 +132,7 @@ win.mlx.mlx_put_image_to_window(win.mlx_ptr,
                                 active_theme['bg']['ptr'],
                                 0, 0)
 
+
 # ============= Loops =============
 
 win.mlx.mlx_loop_hook(win.mlx_ptr, key_actions, None)

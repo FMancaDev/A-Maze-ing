@@ -1,5 +1,4 @@
 from typing import Any
-from ctypes import c_uint
 import struct
 from mazegen.generator import MazeGenerator
 from .constants import DEC_TO_WALLS as WALLS
