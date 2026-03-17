@@ -1,6 +1,6 @@
 import sys
 import random as rd
-from typing import Any
+from typing import Any, Callable
 from .utils import MazeConfig, parse_config, load_themes
 from mazegen.generator import MazeGenerator
 from .Renderer import Renderer
@@ -12,7 +12,7 @@ from .constants import (H_KEYCODE as H,
                         UP_ARROW_KEYCODE as UP,
                         DOWN_ARROW_KEYCODE as DOWN,
                         R_KEYCODE as R)
-from time import perf_counter
+from time import perf_counter, sleep
 
 
 maze_themes: dict[str] = {
@@ -55,7 +55,7 @@ last_theme_change: float = 0
 def change_maze() -> None:
     """will randomly generate a new maze following active sizes"""
     global maze, themes, w, h, active_theme
-    win.mlx.mlx_clear_window(win.mlx_ptr, win.win_ptr)
+    # win.mlx.mlx_clear_window(win.mlx_ptr, win.win_ptr)
     maze = MazeGenerator(w, h, entry, exit, rd.randint(0, 999999))
     maze.generate(perfect=cfg.perfect, method=cfg.gen_algo)
     themes = load_themes(maze, render, win, maze_themes)
@@ -114,14 +114,23 @@ def show_img(overlay: bool = False) -> None:
     global themes
     if overlay:
         if not active_theme.get('path'):
-            path: dict[str, Any] = win.create_copy(active_theme['bg'])
+            path = []
+            bg: dict[str, Any] = win.create_copy(active_theme['bg'])
             color: int = maze_themes[theme_names[theme_index]][2]
-            render.draw_path(maze, path, color)
+            generator: Callable = render.draw_path
+            for i in generator(maze, win, bg, color):
+                path.append(i)
             active_theme['path'] = path
-        win.mlx.mlx_put_image_to_window(win.mlx_ptr,
-                                        win.win_ptr,
-                                        active_theme['path']['ptr'],
-                                        0, 0)
+
+            active_theme['path'] = path
+        for img in active_theme.get('path'):
+            win.mlx.mlx_put_image_to_window(win.mlx_ptr,
+                                            win.win_ptr,
+                                            img['ptr'],
+                                            0, 0)
+            win.mlx.mlx_do_sync(win.mlx_ptr)
+            sleep(0.05)
+
     else:
         win.mlx.mlx_put_image_to_window(win.mlx_ptr,
                                         win.win_ptr,
