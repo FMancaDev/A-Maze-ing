@@ -1,17 +1,18 @@
 import sys
 import random as rd
 from typing import Any, Callable
-from .utils import MazeConfig, parse_config, load_themes
+from rendering.utils import (MazeConfig, parse_config,
+                             load_themes, welcome_message)
 from mazegen.generator import MazeGenerator
-from .Renderer import Renderer
-from .Window import Window
-from .constants import (H_KEYCODE as H,
-                        LEFT_ARROW_KEYCODE as LEFT,
-                        RIGHT_ARROW_KEYCODE as RIGHT,
-                        CTRL_KEYCODE as CTRL,
-                        UP_ARROW_KEYCODE as UP,
-                        DOWN_ARROW_KEYCODE as DOWN,
-                        R_KEYCODE as R)
+from rendering.Renderer import Renderer
+from rendering.Window import Window
+from rendering.constants import (H_KEYCODE as H,
+                                 LEFT_ARROW_KEYCODE as LEFT,
+                                 RIGHT_ARROW_KEYCODE as RIGHT,
+                                 CTRL_KEYCODE as CTRL,
+                                 UP_ARROW_KEYCODE as UP,
+                                 DOWN_ARROW_KEYCODE as DOWN,
+                                 R_KEYCODE as R)
 from time import perf_counter, sleep
 
 
@@ -32,7 +33,7 @@ seed: int = int(sys.argv[2] if len(sys.argv) == 3 else rd.randint(0, 999999))
 
 # ============= Initialization =============
 
-win: Window = Window()
+win: Window = Window(1200, 800)
 render: Renderer = Renderer(win.width, win.height)
 w: int = cfg.width
 h: int = cfg.height
@@ -46,16 +47,25 @@ themes: dict[str, dict[str, dict]] = load_themes(maze, render,
 theme_names: list[str] = list(themes.keys())
 theme_index: int = 0
 active_theme = themes[theme_names[theme_index]]
-theme_delay: float = 0.2
-last_theme_change: float = 0
+delay: float = 0.2
+last_change: float = 0
+card_ptr = win.mlx.mlx_xpm_file_to_image(win.mlx_ptr, ('rendering/card_600.xpm'))[0]
+card_data, card_bpp, card_size_line, card_fmt = win.mlx.mlx_get_data_addr(card_ptr)
+
+welcome_message()
 
 # ============= Functions =============
 
 
 def change_maze() -> None:
     """will randomly generate a new maze following active sizes"""
-    global maze, themes, w, h, active_theme
+    global maze, themes, w, h, active_theme, last_change
     # win.mlx.mlx_clear_window(win.mlx_ptr, win.win_ptr)
+    now = perf_counter()
+    if now - last_change < delay:
+        return
+    last_change = now
+    reset_entry_exit()
     maze = MazeGenerator(w, h, entry, exit, rd.randint(0, 999999))
     maze.generate(perfect=cfg.perfect, method=cfg.gen_algo)
     themes = load_themes(maze, render, win, maze_themes)
@@ -64,11 +74,11 @@ def change_maze() -> None:
 
 def switch_theme(reverse: bool = False):
     """Will circle between themes"""
-    global theme_index, active_theme, last_theme_change
+    global theme_index, active_theme, last_change
     now = perf_counter()
-    if now - last_theme_change < theme_delay:
+    if now - last_change < delay:
         return
-    last_theme_change = now
+    last_change = now
     if reverse:
         theme_index = (theme_index - 1) % len(theme_names)
     else:
@@ -85,23 +95,18 @@ def key_actions(param: Any) -> None:
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(LEFT):
         switch_theme(True)
     if win.keys_pressed.get(R):
-        reset_entry_exit()
         change_maze()
     if win.keys_pressed.get(UP):
         h += 1
-        reset_entry_exit()
         change_maze()
     if win.keys_pressed.get(DOWN):
         h = h - 1 if h > 3 else h
-        reset_entry_exit()
         change_maze()
     if win.keys_pressed.get(RIGHT) and not win.keys_pressed.get(CTRL):
         w += 1
-        reset_entry_exit()
         change_maze()
     if win.keys_pressed.get(LEFT) and not win.keys_pressed.get(CTRL):
         w = w - 1 if w > 3 else w
-        reset_entry_exit()
         change_maze()
 
     if win.keys_pressed.get(H):
@@ -136,6 +141,11 @@ def show_img(overlay: bool = False) -> None:
                                         win.win_ptr,
                                         active_theme['bg']['ptr'],
                                         0, 0)
+        win.mlx.mlx_put_image_to_window(win.mlx_ptr,
+                                        win.win_ptr,
+                                        card_ptr,
+                                        100, 100
+                                        )
 
 
 def reset_entry_exit() -> None:
@@ -158,6 +168,6 @@ win.mlx.mlx_put_image_to_window(win.mlx_ptr,
                                 0, 0)
 
 # ============= Loops =============
-reset_entry_exit()
+
 win.mlx.mlx_loop_hook(win.mlx_ptr, key_actions, None)
 win.mlx.mlx_loop(win.mlx_ptr)

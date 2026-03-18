@@ -133,19 +133,15 @@ class Renderer():
                 y = tl_y + row_idx * cs
                 for wall in walls:
                     if wall == 'N':
-                        print('N')
                         self.draw_line((x, y), (x + cs, y),
                                        t, color, img)
                     elif wall == 'S':
-                        print('S')
                         self.draw_line((x, y + cs), (x + cs, y + cs),
                                        t, color, img)
                     elif wall == 'W':
-                        print('W')
                         self.draw_line((x, y), (x, y + cs),
                                        t, color, img)
                     elif wall == 'E':
-                        print('E')
                         self.draw_line((x + cs, y), (x + cs, y + cs),
                                        t, color, img)
 
