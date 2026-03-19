@@ -2,7 +2,8 @@ import sys
 import random as rd
 from typing import Any, Callable
 from rendering.utils import (MazeConfig, parse_config,
-                             load_themes, welcome_message)
+                             load_themes, welcome_message,
+                             put_logo)
 from mazegen.generator import MazeGenerator
 from rendering.Renderer import Renderer
 from rendering.Window import Window
@@ -33,7 +34,7 @@ seed: int = int(sys.argv[2] if len(sys.argv) == 3 else rd.randint(0, 999999))
 
 # ============= Initialization =============
 
-win: Window = Window(1200, 800)
+win: Window = Window(800, 1000)
 render: Renderer = Renderer(win.width, win.height)
 w: int = cfg.width
 h: int = cfg.height
@@ -49,10 +50,11 @@ theme_index: int = 0
 active_theme = themes[theme_names[theme_index]]
 delay: float = 0.2
 last_change: float = 0
-card_ptr = win.mlx.mlx_xpm_file_to_image(win.mlx_ptr, ('rendering/card_600.xpm'))[0]
-card_data, card_bpp, card_size_line, card_fmt = win.mlx.mlx_get_data_addr(card_ptr)
 
-welcome_message()
+
+# welcome_message()
+logo_ptr, logo_width, logo_height = put_logo(render, win,
+                                             theme_names, theme_index)
 
 # ============= Functions =============
 
@@ -89,24 +91,40 @@ def switch_theme(reverse: bool = False):
 
 def key_actions(param: Any) -> None:
     """base function for key events"""
-    global maze, w, h, active_theme, exit
+    global maze, w, h, active_theme, exit, logo_ptr, logo_width, logo_height
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(RIGHT):
         switch_theme()
+        logo_ptr, logo_width, logo_height = put_logo(render, win,
+                                                     theme_names, theme_index)
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(LEFT):
         switch_theme(True)
+        logo_ptr, logo_width, logo_height = put_logo(render, win,
+                                                     theme_names, theme_index)
     if win.keys_pressed.get(R):
         change_maze()
     if win.keys_pressed.get(UP):
-        h += 1
-        change_maze()
+        try:
+            h += 1
+            sleep(0.2)
+            change_maze()
+            print(h)
+        except ValueError:
+            h -= 1
     if win.keys_pressed.get(DOWN):
         h = h - 1 if h > 3 else h
+        sleep(0.2)
         change_maze()
+
     if win.keys_pressed.get(RIGHT) and not win.keys_pressed.get(CTRL):
-        w += 1
-        change_maze()
+        try:
+            w += 1
+            sleep(0.2)
+            change_maze()
+        except ValueError:
+            w -= 1
     if win.keys_pressed.get(LEFT) and not win.keys_pressed.get(CTRL):
         w = w - 1 if w > 3 else w
+        sleep(0.2)
         change_maze()
 
     if win.keys_pressed.get(H):
@@ -133,6 +151,11 @@ def show_img(overlay: bool = False) -> None:
                                             win.win_ptr,
                                             img['ptr'],
                                             0, 0)
+            win.mlx.mlx_put_image_to_window(win.mlx_ptr,
+                                            win.win_ptr,
+                                            logo_ptr,
+                                            (win.width - logo_width)// 2, render.margin_tb)
+
             win.mlx.mlx_do_sync(win.mlx_ptr)
             sleep(0.05)
 
@@ -143,9 +166,8 @@ def show_img(overlay: bool = False) -> None:
                                         0, 0)
         win.mlx.mlx_put_image_to_window(win.mlx_ptr,
                                         win.win_ptr,
-                                        card_ptr,
-                                        100, 100
-                                        )
+                                        logo_ptr,
+                                        (win.width - logo_width)// 2, render.margin_tb)
 
 
 def reset_entry_exit() -> None:

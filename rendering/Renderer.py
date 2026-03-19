@@ -9,6 +9,7 @@ class Renderer():
     def __init__(self, win_width: int, win_height: int) -> None:
         self.win_width: int = win_width
         self.win_height: int = win_height
+        self.logo_area: bool = False
 
     def put_pixel(self, data: memoryview,
                   x: int, y: int,
@@ -80,33 +81,60 @@ class Renderer():
                            (cx + dx_limit + 1, y + 1),
                            color, img)
 
-    def draw_maze(self, maze: MazeGenerator,
-                  img: dict[str, Any], color: int) -> None:
-        margin: float = 0.9
+    def set_layout(self, maze: MazeGenerator, margin: float = 0.8) -> None:
+        self.logo_height: int = 0
+        if self.win_height < 200:
+            pass
+        elif self.win_height < 400:
+            self.logo_height = 56 + 10  # pic height is 56
+            self.logo_area = True
+            self.logo_size = 'small'
+        elif self.win_height < 900:
+            self.logo_height = 111 + 30  # pic height is 111
+            self.logo_area = True
+            self.logo_size = 'medium'
+        else:
+            self.logo_height = 249 + 15   # pic height is 249
+            self.logo_area = True
+            self.logo_size = 'big'
+
         active_w: int = round(self.win_width * margin)
-        # sets base margin for maze
         active_h: int = round(self.win_height * margin)
+        self.margin_lr: int = (self.win_width - active_w) // 2
+        self.margin_tb: int = (self.win_height - active_h) // 2
 
-        self.cell_size: int = (active_w // maze.width if maze.width > 0 else
-                               active_w)
-        if self.cell_size * maze.height > active_h:
-            self.cell_size = active_h // maze.height
-        if self.cell_size < 3:
-            raise ValueError('Active width isn\'t enough '
-                             'to acomodate maze width')
+        active_h = active_h - self.logo_height if self.logo_area else active_h
 
-        maze_px_width: int = self.cell_size * maze.width
-        maze_px_height: int = self.cell_size * maze.height
+        cs: int = active_w // maze.width if maze.width > 0 else active_w
 
-        padding_left: int = (self.win_width - maze_px_width) // 2
-        padding_top: int = (self.win_height - maze_px_height) // 2
+        if cs * maze.height > active_h:
+            cs = active_h // maze.height
+
+        if cs < 10:
+            raise ValueError('Not enough cell size')
+
+        maze_width_px: int = cs * maze.width
+        maze_height_px: int = cs * maze.height
+
+        padding_left: int = (self.win_width - maze_width_px) // 2
+        padding_top: int = (active_h - maze_height_px) // 2 + self.margin_tb
+        padding_top = (padding_top + self.logo_height if
+                       self.logo_area else padding_top)
+
+        self.cell_size = cs
 
         self.coor: dict[str, tuple] = {
             'tl': (padding_left, padding_top),
-            'tr': (padding_left + maze_px_width,  padding_top),
-            'bl': (padding_left, padding_top + maze_px_height),
-            'br': (padding_left + maze_px_width, padding_top + maze_px_height),
+            'tr': (padding_left + maze_width_px, padding_top),
+            'bl': (padding_left, padding_top + maze_height_px),
+            'br': (padding_left + maze_width_px, padding_top + maze_height_px),
         }
+
+    def draw_maze(self, maze: MazeGenerator,
+                  img: dict[str, Any], color: int) -> None:
+
+        self.set_layout(maze)
+
         self.border_thickness: int = (1 if self.cell_size < 5 else
                                       self.cell_size // 5)
 
