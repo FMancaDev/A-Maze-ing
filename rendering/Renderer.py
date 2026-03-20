@@ -83,9 +83,9 @@ class Renderer():
 
     def set_layout(self, maze: MazeGenerator, margin: float = 0.8) -> None:
         self.logo_height: int = 0
-        if self.win_height < 200:
+        if self.win_height < 400:
             pass
-        elif self.win_height < 400:
+        elif self.win_height < 800:
             self.logo_height = 56 + 10  # pic height is 56
             self.logo_area = True
             self.logo_size = 'small'

@@ -102,16 +102,16 @@ def put_logo(render: Renderer, win: Window,
              theme_names: list[str], theme_index: int) -> Optional[tuple]:
     if not render.logo_area:
         return None
-    theme_name: str = 'rendering/' + theme_names[theme_index].lower()
+    theme_name: str = 'rendering/logo/' + theme_names[theme_index].lower()
     if render.logo_size == 'small':
         return win.mlx.mlx_xpm_file_to_image(win.mlx_ptr,
-                                             (f'{theme_name}_logo_small.xpm'))
+                                             (f'{theme_name}_small.xpm'))
     if render.logo_size == 'medium':
         return win.mlx.mlx_xpm_file_to_image(win.mlx_ptr,
-                                             (f'{theme_name}_logo_medium.xpm'))
+                                             (f'{theme_name}_medium.xpm'))
     if render.logo_size == 'big':
         return win.mlx.mlx_xpm_file_to_image(win.mlx_ptr,
-                                             (f'{theme_name}_logo_big.xpm'))
+                                             (f'{theme_name}_big.xpm'))
 
 
 def welcome_message() -> None:

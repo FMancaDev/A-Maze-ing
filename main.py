@@ -34,7 +34,7 @@ seed: int = int(sys.argv[2] if len(sys.argv) == 3 else rd.randint(0, 999999))
 
 # ============= Initialization =============
 
-win: Window = Window(800, 1000)
+win: Window = Window(800, 800)
 render: Renderer = Renderer(win.width, win.height)
 w: int = cfg.width
 h: int = cfg.height
@@ -52,9 +52,13 @@ delay: float = 0.2
 last_change: float = 0
 
 
-# welcome_message()
-logo_ptr, logo_width, logo_height = put_logo(render, win,
-                                             theme_names, theme_index)
+welcome_message()
+logo_ptr: int = 0
+logo_width: int = 0
+logo_height: int = 0
+logo = put_logo(render, win, theme_names, theme_index)
+if logo:
+    logo_ptr, logo_width, logo_height = logo
 
 # ============= Functions =============
 
@@ -94,12 +98,14 @@ def key_actions(param: Any) -> None:
     global maze, w, h, active_theme, exit, logo_ptr, logo_width, logo_height
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(RIGHT):
         switch_theme()
-        logo_ptr, logo_width, logo_height = put_logo(render, win,
-                                                     theme_names, theme_index)
+        logo = put_logo(render, win, theme_names, theme_index)
+        if logo:
+            logo_ptr, logo_width, logo_height = logo
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(LEFT):
         switch_theme(True)
-        logo_ptr, logo_width, logo_height = put_logo(render, win,
-                                                     theme_names, theme_index)
+        logo = put_logo(render, win, theme_names, theme_index)
+        if logo:
+            logo_ptr, logo_width, logo_height = logo
     if win.keys_pressed.get(R):
         change_maze()
     if win.keys_pressed.get(UP):
@@ -151,10 +157,12 @@ def show_img(overlay: bool = False) -> None:
                                             win.win_ptr,
                                             img['ptr'],
                                             0, 0)
-            win.mlx.mlx_put_image_to_window(win.mlx_ptr,
-                                            win.win_ptr,
-                                            logo_ptr,
-                                            (win.width - logo_width)// 2, render.margin_tb)
+            if logo:
+                win.mlx.mlx_put_image_to_window(win.mlx_ptr,
+                                                win.win_ptr,
+                                                logo_ptr,
+                                                (win.width - logo_width) // 2,
+                                                render.margin_tb)
 
             win.mlx.mlx_do_sync(win.mlx_ptr)
             sleep(0.05)
@@ -164,10 +172,12 @@ def show_img(overlay: bool = False) -> None:
                                         win.win_ptr,
                                         active_theme['bg']['ptr'],
                                         0, 0)
-        win.mlx.mlx_put_image_to_window(win.mlx_ptr,
-                                        win.win_ptr,
-                                        logo_ptr,
-                                        (win.width - logo_width)// 2, render.margin_tb)
+        if logo:
+            win.mlx.mlx_put_image_to_window(win.mlx_ptr,
+                                            win.win_ptr,
+                                            logo_ptr,
+                                            (win.width - logo_width) // 2,
+                                            render.margin_tb)
 
 
 def reset_entry_exit() -> None:
