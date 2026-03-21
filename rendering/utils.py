@@ -41,7 +41,7 @@ def change_maze(current: CurrentState, delay: float) -> Optional[CurrentState]:
     now: float = perf_counter()
     last_change: float = current.last_change
     if now - last_change < delay:
-        return
+        return current
     current.last_change = now
 
     current: CurrentState = reset_entry_exit(current)
@@ -93,11 +93,11 @@ def load_themes(maze: MazeGenerator,
 
 
 def switch_theme(current: CurrentState, delay: float,
-                 reverse: bool = False) -> Optional[CurrentState]:
+                 reverse: bool = False) -> CurrentState:
     """Will circle between themes"""
     now: float = perf_counter()
     if now - current.last_change < delay:
-        return
+        return current
     current.last_change = now
 
     theme_names: list[str] = current.theme_names
