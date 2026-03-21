@@ -18,6 +18,7 @@ maze_themes: dict[str, list[int, int, int]] = {
 
 @dataclass
 class CurrentState:
+    """saves the state of the program at any given time"""
     win: Window
     render: Renderer
     maze: MazeGenerator
@@ -30,11 +31,11 @@ class CurrentState:
     img_stack: dict[str, dict[str, dict]]
     theme_names: list[str]
     theme_index: int
-    active_theme: dict
+    active_theme: dict[str, Any]
     last_change: float
 
 
-def change_maze(current: CurrentState, delay: float) -> CurrentState:
+def change_maze(current: CurrentState, delay: float) -> Optional[CurrentState]:
     """will randomly generate a new maze following active sizes"""
     # win.mlx.mlx_clear_window(win.mlx_ptr, win.win_ptr)
     now: float = perf_counter()
@@ -63,6 +64,7 @@ def change_maze(current: CurrentState, delay: float) -> CurrentState:
 
 
 def reset_entry_exit(current: CurrentState) -> CurrentState:
+    """resets entry/ exit points"""
     available_coor = []
     for y in range(current.h):
         for x in range(current.w):
@@ -100,7 +102,6 @@ def switch_theme(current: CurrentState, delay: float,
 
     theme_names: list[str] = current.theme_names
     theme_index: int = current.theme_index
-    active_theme: dict = current.active_theme
     img_stack: dict = current.img_stack
 
     if reverse:
@@ -203,7 +204,7 @@ def put_logo(current: CurrentState) -> Optional[tuple]:
 
 def show_img(current: CurrentState, overlay: bool = False) -> None:
 
-    active_theme: dict = current.active_theme
+    active_theme: dict[str, Any] = current.active_theme
     theme_names: list[str] = current.theme_names
     theme_index: int = current.theme_index
     maze: MazeGenerator = current.maze
