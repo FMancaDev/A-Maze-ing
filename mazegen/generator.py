@@ -4,6 +4,8 @@ from collections import deque
 
 
 class MazeGenerator:
+    """Generates and solves mazes using different algorithms"""
+
     NORTH = 1  # 0001
     EAST = 2   # 0010
     SOUTH = 4  # 0100
@@ -17,6 +19,8 @@ class MazeGenerator:
 
     def __init__(self, width: int, height: int, entry: Tuple[int, int],
                  exit_coords: Tuple[int, int], seed: int = 42) -> None:
+        """Initialize the maze with dimensions, entry, exit, and seed."""
+
         self.width = width
         self.height = height
         self.entry = entry
@@ -28,12 +32,15 @@ class MazeGenerator:
 
     def _carve(self, x1: int, y1: int, x2: int, y2: int,
                wall: int, opp: int) -> None:
+        """Remove the wall between two adjacent cells"""
+
         w = self.width
         self.grid[y1 * w + x1] &= ~wall
         self.grid[y2 * w + x2] &= ~opp
 
     def _get_42_coords(self) -> List[Tuple[int, int]]:
-        """Desenha o logo 42 no centro do labirinto."""
+        """Returns the coordinates of the '42' logo in the center"""
+
         cx = self.width // 2
         cy = self.height // 2
         pattern = [
@@ -56,7 +63,9 @@ class MazeGenerator:
         return coords
 
     def generate(self, perfect: bool = True,
-                 method: str = "backtracking") -> None:
+                 method: str = "backtracking") -> Generator:
+        """Generate the maze using backtracking or Prim"""
+
         random.seed(self.seed)
         visited: Set[Tuple[int, int]] = set()
 
@@ -67,24 +76,19 @@ class MazeGenerator:
                     visited.add(cell)
         else:
             print(f"[Notice] Maze {self.width}x{self.height} "
-                  f"too small for '42' logo.")
+                  f"too small for '42' logo")
 
         if method.lower() == "prim":
-            for _ in self._run_prim(visited):
-                pass
+            run = self._run_prim(visited)
         else:
-            for _ in self._run_backtracking(visited):
-                pass
-
-        if not perfect:
-            self._make_imperfect()
-
-        self._seal_logo()
+            run = self._run_backtracking(visited)
+        return run
 
     def _run_backtracking(
         self, visited: Set[Tuple[int, int]]
     ) -> Generator[Tuple[int, int], None, None]:
-        """DFS iterativo com gerador. Cada yield devolve a celula atual."""
+        """Generates a maze with iterative DFS (backtracking)"""
+
         dirs = list(self.DIRECTIONS.values())
         stack = [self.entry]
         visited.add(self.entry)
@@ -114,7 +118,8 @@ class MazeGenerator:
     def _run_prim(
         self, visited: Set[Tuple[int, int]]
     ) -> Generator[Tuple[int, int], None, None]:
-        """Prim randomizado com gerador."""
+        """Generate maze using Prim's randomized algorithm"""
+
         dirs = list(self.DIRECTIONS.values())
         walls: list = []
         width = self.width
@@ -146,8 +151,9 @@ class MazeGenerator:
                 yield (x2, y2)
 
     def _make_imperfect(self) -> None:
-        """Remove paredes aleatorias para criar loops no labirinto."""
+        """Creates loops by removing random walls"""
         dirs = list(self.DIRECTIONS.values())
+
         num_extra = max(1, (self.width * self.height) // 20)
         grid = self.grid
         width = self.width
@@ -177,7 +183,8 @@ class MazeGenerator:
                     break
 
     def _seal_logo(self) -> None:
-        """Forca o logo 42 a ficar fechado."""
+        """Completely close the cells of the '42' logo"""
+
         w = self.width
         for x, y in self.logo_cells:
             self.grid[y * w + x] = 15
@@ -189,7 +196,8 @@ class MazeGenerator:
     def solve(
         self, start: Tuple[int, int], end: Tuple[int, int]
     ) -> List[Tuple[int, int]]:
-        """BFS — devolve o caminho mais curto."""
+        """Find the shortest route with BFS"""
+
         parent: dict = {start: None}
         queue = deque([start])
         width = self.width
@@ -223,11 +231,14 @@ class MazeGenerator:
 
     @property
     def grid_rows(self) -> List[List[int]]:
-        """Vista 2D do grid flat. Substitui maze.grid no renderer."""
+        """Returns the grid in 2D format"""
+
         w = self.width
         return [self.grid[y * w:(y + 1) * w] for y in range(self.height)]
 
     def get_path_string(self, path: List[Tuple[int, int]]) -> str:
+        """Converts a path into a string of directions (N, S, E, W)"""
+
         res = []
         for i in range(len(path) - 1):
             dx = path[i + 1][0] - path[i][0]
@@ -249,6 +260,8 @@ class MazeGenerator:
         exit_coords: Tuple[int, int],
         path: List[Tuple[int, int]],
     ) -> None:
+        """Save the maze and solution in a file"""
+
         w = self.width
         with open(filename, "w") as f:
             for y in range(self.height):
