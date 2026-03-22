@@ -1,3 +1,4 @@
+import sys
 from typing import Any, Generator
 import struct
 from mazegen.generator import MazeGenerator
@@ -110,8 +111,8 @@ class Renderer():
         if cs * maze.height > active_h:
             cs = active_h // maze.height
 
-        if cs < 10:
-            raise ValueError('Not enough cell size')
+        if cs < 5:
+            sys.exit('Not enough cell size')
 
         maze_width_px: int = cs * maze.width
         maze_height_px: int = cs * maze.height

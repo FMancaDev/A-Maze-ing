@@ -25,20 +25,20 @@ seed: int = int(sys.argv[2] if len(sys.argv) == 3 else rand.randint(0, 999999))
 
 win: rend.Window = rend.Window(800, 800)
 render: rend.Renderer = rend.Renderer(win.width, win.height)
-maze = MazeGenerator(w, h, entry, exit, seed)
-maze.generate(perfect=maze_type, method=algo)
 
-img_stack: dict[str, dict[str, dict]] = rend.load_themes(maze, render, win)
-theme_names: list[str] = list(img_stack.keys())
+maze = MazeGenerator(w, h, entry, exit, seed)
+theme_names: list[str] = list(rend.maze_themes.keys())
 theme_index: int = 0
-active_theme = img_stack[theme_names[theme_index]]
 delay: float = 0.2
 last_change: float = 0
-
+img_stack: dict = {}
+active_theme: dict = {}
 current = rend.CurrentState(win, render, maze, w, h, entry, exit,
                             maze_type, algo, img_stack, theme_names,
                             theme_index, active_theme, last_change)
+
 rend.welcome_message()
+current = rend.animate(current)
 
 # ============= Functions =============
 
@@ -48,12 +48,12 @@ def key_actions(param: Any) -> None:
     global current
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(RIGHT):
         current = rend.switch_theme(current, delay)
-        logo = rend.put_logo(render, win, theme_names, theme_index)
+        logo = rend.put_logo(current)
         if logo:
             logo_ptr, logo_width, logo_height = logo
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(LEFT):
-        current = rend.switch_theme(True)
-        logo = rend.put_logo(render, win, theme_names, theme_index)
+        current = rend.switch_theme(current, delay, reverse=True)
+        logo = rend.put_logo(current)
         if logo:
             logo_ptr, logo_width, logo_height = logo
     if win.keys_pressed.get(R):

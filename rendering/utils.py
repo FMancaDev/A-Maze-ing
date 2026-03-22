@@ -35,7 +35,96 @@ class CurrentState:
     last_change: float
 
 
-def change_maze(current: CurrentState, delay: float) -> Optional[CurrentState]:
+def animate(current: CurrentState, gen_speed: float = 0.01,
+            path_speed: float = 0.05) -> CurrentState:
+
+    win: Window = current.win
+    render: Renderer = current.render
+    maze: MazeGenerator = current.maze
+    theme_names: list[str] = current.theme_names
+    theme_index: int = current.theme_index
+    bg_color: int = maze_themes[theme_names[theme_index]][0]
+    fg_color: int = maze_themes[theme_names[theme_index]][1]
+    path_color: int = maze_themes[theme_names[theme_index]][2]
+
+    # mesma imagem em todos os frames
+    frame: dict[str, Any] = win.create_img()
+    render.set_layout(maze)
+    render.border_thickness = (1 if render.cell_size < 5
+                               else render.cell_size // 5)
+
+    # geracao
+    runner = maze.generate(perfect=current.maze_type, method=current.algo)
+    for cell in runner:
+
+        # redesenha tudo na mesma imagem
+        render.fill_rect((0, 0), (win.width, win.height), bg_color, frame)
+        render.draw_frame(
+            render.coor, render.border_thickness, fg_color, frame)
+        render.fill_42(maze.logo_cells, fg_color, frame)
+        render.draw_walls(maze.grid_rows, fg_color, frame)
+
+        # cursor na celula atual
+        cs = render.cell_size
+        tlx, tly = render.coor['tl']
+        cx = cell[0] * cs + tlx
+        cy = cell[1] * cs + tly
+
+        render.fill_rect((cx + 2, cy + 2),
+                         (cx + cs - 2, cy + cs - 2),
+                         path_color, frame)
+
+        win.mlx.mlx_put_image_to_window(win.mlx_ptr, win.win_ptr,
+                                        frame['ptr'], 0, 0)
+        if render.logo_area:
+            logo_ptr, logo_width, logo_height = put_logo(current)
+            win.mlx.mlx_put_image_to_window(win.mlx_ptr, win.win_ptr,
+                                            logo_ptr,
+                                            (win.width - logo_width) // 2,
+                                            render.margin_tb)
+        win.mlx.mlx_do_sync(win.mlx_ptr)
+        sleep(gen_speed)
+
+    if not current.maze_type:
+        maze._make_imperfect()
+    maze._seal_logo()
+
+    # frame final
+    render.fill_rect((0, 0), (win.width, win.height), bg_color, frame)
+    render.draw_maze(maze, frame, fg_color)
+
+    # solucao
+    path: list = maze.solve(maze.entry, maze.exit)
+    path_t: int = round(render.border_thickness * 1.2)
+    cs = render.cell_size
+    tlx, tly = render.coor['tl']
+
+    for square in path:
+        scx = square[0] * cs + tlx + cs // 2
+        scy = square[1] * cs + tly + cs // 2
+        render.fill_circle((scx - path_t, scy - path_t),
+                           (scx + path_t, scy + path_t),
+                           path_color, frame)
+
+        win.mlx.mlx_put_image_to_window(win.mlx_ptr, win.win_ptr,
+                                        frame['ptr'], 0, 0)
+
+        if render.logo_area:
+            logo_ptr, logo_width, logo_height = put_logo(current)
+            win.mlx.mlx_put_image_to_window(win.mlx_ptr, win.win_ptr,
+                                            logo_ptr,
+                                            (win.width - logo_width) // 2,
+                                            render.margin_tb)
+        win.mlx.mlx_do_sync(win.mlx_ptr)
+        sleep(path_speed)
+
+    # guarda resultado final
+    current.img_stack = load_themes(maze, render, win, maze_themes)
+    current.active_theme = current.img_stack[theme_names[theme_index]]
+    return current
+
+
+def change_maze(current: CurrentState, delay: float) -> CurrentState:
     """will randomly generate a new maze following active sizes"""
     # win.mlx.mlx_clear_window(win.mlx_ptr, win.win_ptr)
     now: float = perf_counter()
@@ -57,10 +146,7 @@ def change_maze(current: CurrentState, delay: float) -> Optional[CurrentState]:
     theme_index: int = current.theme_index
 
     current.maze = MazeGenerator(w, h, entry, exit, rd.randint(0, 999999))
-    current.maze.generate(perfect=maze_type, method=algo)
-    current.img_stack = load_themes(current.maze, render, win, maze_themes)
-    current.active_theme = current.img_stack[theme_names[theme_index]]
-    return current
+    return animate(current)
 
 
 def reset_entry_exit(current: CurrentState) -> CurrentState:

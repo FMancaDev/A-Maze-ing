@@ -3,8 +3,8 @@ PYTHON      := $(VENV)/bin/python3
 PIP         := $(VENV)/bin/pip
 MAIN        := a_maze_ing.py
 CONFIG      := config.txt
-RENDER_MOD  := rendering.main
 
+# cores
 GREEN       := \033[0;32m
 BLUE        := \033[0;34m
 RED         := \033[0;31m
@@ -18,19 +18,17 @@ install:
 	@echo "$(GREEN)Creating Virtual Environment and installing dependencies...$(RESET)"
 	@python3 -m venv $(VENV)
 	@$(PIP) install --upgrade pip
-
 	@$(PIP) install mlx-2.2-py3-none-any.whl || $(PIP) install mlx-2.2-py3-ubuntu-any.whl || echo "MLX wheel not found, skipping..."
 	@$(PIP) install .
 	@$(PIP) install flake8 mypy
 	@echo "$(GREEN)Install complete. Use 'source venv/bin/activate' to enter venv.$(RESET)"
 
-# isto roda qundo tento dar run antes de fazer install
 run:
 	@if [ ! -f "$(PYTHON)" ]; then echo "$(RED)Error: Run 'make install' first$(RESET)"; exit 1; fi
 	@echo "$(BLUE)Step 1: Generating Maze...$(RESET)"
 	@$(PYTHON) $(MAIN) $(CONFIG)
 	@echo "$(BLUE)Step 2: Launching Graphical Renderer...$(RESET)"
-	@$(PYTHON) -m $(RENDER_MOD)
+	@$(PYTHON) main.py $(CONFIG)
 
 debug:
 	$(PYTHON) -m pdb $(MAIN) $(CONFIG)
