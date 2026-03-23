@@ -16,6 +16,17 @@ maze_themes: dict[str, list[int, int, int]] = {
 }
 
 
+def argb_to_rgb(argb: int) -> tuple[int, int, int]:
+    r: int = (argb >> 16) & 0xFF
+    g: int = (argb >> 8) & 0xFF
+    b: int = argb & 0xFF
+    return r, g, b
+
+
+def argb_to_ansi(argb: int) -> str:
+    r, g, b = argb_to_rgb(argb)
+    return f'\x1b[38;2;{r};{g};{b}m'
+
 @dataclass
 class CurrentState:
     """saves the state of the program at any given time"""
@@ -201,7 +212,10 @@ def switch_theme(current: CurrentState,
     else:
         current.theme_index = (theme_index + 1) % len(theme_names)
     current.active_theme = img_stack[theme_names[current.theme_index]]
-    print(f'Theme set: "{theme_names[theme_index]}"')
+    color: str = argb_to_ansi(maze_themes[theme_names[theme_index]])
+    white: str = argb_to_ansi(0xFFFFFFFF)
+
+    print(f'Theme set: "{color}{theme_names[theme_index]}{white}"')
     current.logo = put_logo(current)
     return current
 
