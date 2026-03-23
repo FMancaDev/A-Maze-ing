@@ -27,6 +27,7 @@ def argb_to_ansi(argb: int) -> str:
     r, g, b = argb_to_rgb(argb)
     return f'\x1b[38;2;{r};{g};{b}m'
 
+
 @dataclass
 class CurrentState:
     """saves the state of the program at any given time"""
@@ -50,6 +51,9 @@ class CurrentState:
     frame_index: int = 0
     last_frame_change: float = 0
     frame_delay: float = 0.05
+
+
+def _interruptible_sleep(win: Window, duration: float) -> boo:
 
 
 def animate(current: CurrentState, gen_speed: float = 0.0,
