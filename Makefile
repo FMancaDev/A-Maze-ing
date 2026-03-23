@@ -25,9 +25,7 @@ install:
 
 run:
 	@if [ ! -f "$(PYTHON)" ]; then echo "$(RED)Error: Run 'make install' first$(RESET)"; exit 1; fi
-	@echo "$(BLUE)Step 1: Generating Maze...$(RESET)"
 	@$(PYTHON) $(MAIN) $(CONFIG)
-	@echo "$(BLUE)Step 2: Launching Graphical Renderer...$(RESET)"
 	@$(PYTHON) main.py $(CONFIG)
 
 debug:

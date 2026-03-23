@@ -88,8 +88,13 @@ def main():
 
     mg = MazeGenerator(w, h, en, ex, seed)
 
-    print(f"Generating maze using: {gen_algo}...")
-    mg.generate(perfect=perfect, method=gen_algo)
+    print(f"\nGenerating maze using: {gen_algo}...")
+    for _ in mg.generate(perfect=perfect, method=gen_algo):
+        pass
+
+    mg._seal_logo()
+    if not perfect:
+        mg._make_imperfect()
 
     path = mg.solve(en, ex)
 
