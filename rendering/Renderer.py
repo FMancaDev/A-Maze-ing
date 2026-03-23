@@ -184,19 +184,21 @@ class Renderer():
             self.fill_rect((x0, y0), (x0 + cs, y0 + cs), color, img)
 
     def draw_path(self, maze: MazeGenerator, win: Window,
-                  img: dict[str, Any], color: int) -> Generator:
+                  img: dict[str, Any], maze_color: int,
+                  path_color: int) -> Generator:
 
         path: list[tuple[int, int]] = maze.solve(maze.entry, maze.exit)
-        path_t: int = round(self.border_thickness * 1.2)
         cs = self.cell_size
         tlx, tly = self.coor['tl']
         for square in path:
             step: dict[str, Any] = win.create_copy(img)
-            cx = square[0] * cs + tlx + cs // 2
-            cy = square[1] * cs + tly + cs // 2
-            self.fill_circle((cx - path_t, cy - path_t),
-                             (cx + path_t, cy + path_t),
-                             color, step)
+            tl = square[0] * cs + tlx
+            ty = square[1] * cs + tly
+            self.fill_rect((tl, ty),
+                           (tl + cs, ty + cs),
+                           path_color, step)
+            self.draw_maze(maze, step, maze_color)
+            img = step
             yield step
 
     def draw_start_end_points(self, maze: MazeGenerator,

@@ -32,11 +32,17 @@ class CurrentState:
     theme_names: list[str]
     theme_index: int
     active_theme: dict[str, Any]
-    last_change: float
+    logo: tuple | None = None
+    rerender_delay: float = 0.2
+    last_rerender: float = 0
+    animating: bool = False
+    frame_index: int = 0
+    last_frame_change: float = 0
+    frame_delay: float = 0.05
 
 
-def animate(current: CurrentState, gen_speed: float = 0.01,
-            path_speed: float = 0.05) -> CurrentState:
+def animate(current: CurrentState, gen_speed: float = 0.0,
+            path_speed: float = 0.0) -> CurrentState:
 
     win: Window = current.win
     render: Renderer = current.render
@@ -124,14 +130,14 @@ def animate(current: CurrentState, gen_speed: float = 0.01,
     return current
 
 
-def change_maze(current: CurrentState, delay: float) -> CurrentState:
+def change_maze(current: CurrentState) -> CurrentState:
     """will randomly generate a new maze following active sizes"""
     # win.mlx.mlx_clear_window(win.mlx_ptr, win.win_ptr)
     now: float = perf_counter()
-    last_change: float = current.last_change
-    if now - last_change < delay:
+    last_change: float = current.last_rerender
+    if now - last_change < current.rerender_delay:
         return current
-    current.last_change = now
+    current.last_rerender = now
 
     current: CurrentState = reset_entry_exit(current)
     w: int = current.w
@@ -178,13 +184,13 @@ def load_themes(maze: MazeGenerator,
     return img_stack
 
 
-def switch_theme(current: CurrentState, delay: float,
+def switch_theme(current: CurrentState,
                  reverse: bool = False) -> CurrentState:
     """Will circle between themes"""
     now: float = perf_counter()
-    if now - current.last_change < delay:
+    if now - current.last_rerender < current.rerender_delay:
         return current
-    current.last_change = now
+    current.last_rerender = now
 
     theme_names: list[str] = current.theme_names
     theme_index: int = current.theme_index
@@ -194,8 +200,9 @@ def switch_theme(current: CurrentState, delay: float,
         current.theme_index = (theme_index - 1) % len(theme_names)
     else:
         current.theme_index = (theme_index + 1) % len(theme_names)
-    current.active_theme = img_stack[theme_names[theme_index]]
+    current.active_theme = img_stack[theme_names[current.theme_index]]
     print(f'Theme set: "{theme_names[theme_index]}"')
+    current.logo = put_logo(current)
     return current
 
 
@@ -296,44 +303,60 @@ def show_img(current: CurrentState, overlay: bool = False) -> None:
     maze: MazeGenerator = current.maze
     win: Window = current.win
 
+    now: float = perf_counter()
+    if now - current.last_frame_change < current.frame_delay:
+        return
+    current.last_frame_change = now
+
     if overlay:
         if not active_theme.get('path'):
+            print('Generating path...')
             path: list = []
             bg: dict[str, Any] = current.win.create_copy(active_theme['bg'])
-            color: int = maze_themes[theme_names[theme_index]][2]
+            maze_color: int = maze_themes[theme_names[theme_index]][1]
+            path_color: int = maze_themes[theme_names[theme_index]][2]
             generator: Callable = current.render.draw_path
-            for i in generator(maze, win, bg, color):
-                path.append(i)
+            path.append(bg)
+            for frame in generator(maze, win, bg, maze_color, path_color):
+                bg = win.create_copy(frame)
+                path.append(frame)
             current.active_theme['path'] = path
+            active_theme = current.active_theme
 
-        for img in current.active_theme.get('path'):
-            win.mlx.mlx_put_image_to_window(win.mlx_ptr,
-                                            win.win_ptr,
-                                            img['ptr'],
-                                            0, 0)
-            if current.render.logo_area:
-                logo_ptr, logo_width, logo_height = put_logo(current)
-                win.mlx.mlx_put_image_to_window(win.mlx_ptr,
-                                                win.win_ptr,
-                                                logo_ptr,
-                                                (win.width - logo_width) // 2,
-                                                current.render.margin_tb)
-
-            win.mlx.mlx_do_sync(win.mlx_ptr)
-            sleep(0.05)
-
-    else:
+        frames = active_theme.get('path')
+        current.animating = True
+        current_frame = frames[current.frame_index]
+        if current.frame_index < len(frames) - 1:
+            current.frame_index += 1
         win.mlx.mlx_put_image_to_window(win.mlx_ptr,
                                         win.win_ptr,
-                                        active_theme['bg']['ptr'],
+                                        current_frame['ptr'],
                                         0, 0)
-        if current.render.logo_area:
-            logo_ptr, logo_width, logo_height = put_logo(current)
+    else:
+        if current.animating:
+            if current.frame_index == 0:
+                current.animating = False
+        if current.animating and current.active_theme.get('path'):
+            current_frame = current.active_theme['path'][current.frame_index]
+            current.frame_index -= 1 if current.frame_index > 0 else 0
             win.mlx.mlx_put_image_to_window(win.mlx_ptr,
                                             win.win_ptr,
-                                            logo_ptr,
-                                            (win.width - logo_width) // 2,
-                                            current.render.margin_tb)
+                                            current_frame['ptr'],
+                                            0, 0)
+        else:
+            win.mlx.mlx_put_image_to_window(win.mlx_ptr,
+                                            win.win_ptr,
+                                            active_theme['bg']['ptr'],
+                                            0, 0)
+    if current.render.logo_area:
+        if not current.logo:
+            current.logo = put_logo(current)
+        logo_ptr, logo_width, logo_height = current.logo
+        win.mlx.mlx_put_image_to_window(win.mlx_ptr,
+                                        win.win_ptr,
+                                        logo_ptr,
+                                        (win.width - logo_width) // 2,
+                                        current.render.margin_tb)
 
 
 def welcome_message() -> None:
