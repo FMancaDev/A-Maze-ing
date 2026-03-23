@@ -9,6 +9,8 @@ from .constants import (ESC_KEYCODE, CTRL_KEYCODE,
 class Window():
     def __init__(self, w: int = 800, h: int = 600,
                  name: str = 'A_Maze_Ing') -> None:
+
+        self.shoul_quit = True
         self.mlx: Mlx = Mlx()
         self.mlx_ptr: c_void_p = self.mlx.mlx_init()
 
@@ -48,6 +50,8 @@ class Window():
                 self.mlx.mlx_do_key_autorepeatoff(self.mlx_ptr)
             except Exception:
                 pass
+
+        self.should_quit: bool = False
         self.keys_pressed: dict[str, bool] = {}
         self.mlx.mlx_hook(self.win_ptr, 2, 1, self.on_keypress, None)
         self.mlx.mlx_hook(self.win_ptr, 3, 2, self.on_release, None)
@@ -55,6 +59,8 @@ class Window():
 
     def quit_prg(self, param: Any = None) -> None:
         """destroys window, the loop and exits program"""
+
+        self.should_quit = True
         self.mlx.mlx_destroy_window(self.mlx_ptr, self.win_ptr)
         self.mlx.mlx_loop_exit(self.mlx_ptr)
         os._exit(0)
@@ -62,7 +68,8 @@ class Window():
     def on_keypress(self, keycode: int, param: Any) -> None:
         """checks and stores pressed keys, and checks for combos
         that can kill the program"""
-        print("Key:", keycode)
+
+        # print("Key:", keycode)
         if keycode == ESC_KEYCODE:
             print('<ESC> pressed. Quitting...')
             self.quit_prg()
@@ -71,6 +78,7 @@ class Window():
 
     def check_combo(self) -> None:
         """checks for pressed key combinations"""
+
         if (self.keys_pressed.get(CTRL_KEYCODE) and
            self.keys_pressed.get(C_KEYCODE)):
             print('<Ctr+C> pressed. Quitting...')
@@ -82,9 +90,10 @@ class Window():
 
     def on_release(self, keycode: int, param: Any) -> None:
         """sets the key state as False upon release"""
+
         if keycode in self.keys_pressed:
             self.keys_pressed[keycode] = False
-            print('Key released:', keycode)
+            # print('Key released:', keycode)
 
     def create_img(self) -> dict[str, Any]:
         img_ptr: c_void_p = self.mlx.mlx_new_image(
