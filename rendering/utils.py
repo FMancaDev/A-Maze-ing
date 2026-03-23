@@ -212,7 +212,7 @@ def switch_theme(current: CurrentState,
     else:
         current.theme_index = (theme_index + 1) % len(theme_names)
     current.active_theme = img_stack[theme_names[current.theme_index]]
-    color: str = argb_to_ansi(maze_themes[theme_names[theme_index]])
+    color: str = argb_to_ansi(maze_themes[theme_names[theme_index]][0])
     white: str = argb_to_ansi(0xFFFFFFFF)
 
     print(f'Theme set: "{color}{theme_names[theme_index]}{white}"')
