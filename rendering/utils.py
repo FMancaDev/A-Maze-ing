@@ -53,9 +53,6 @@ class CurrentState:
     frame_delay: float = 0.05
 
 
-def _interruptible_sleep(win: Window, duration: float) -> boo:
-
-
 def animate(current: CurrentState, gen_speed: float = 0.0,
             path_speed: float = 0.0) -> CurrentState:
 
