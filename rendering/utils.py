@@ -3,8 +3,8 @@ from .Renderer import Renderer
 from . Window import Window
 from typing import Any, Optional, Callable
 import sys
+from time import perf_counter
 from dataclasses import dataclass
-from time import perf_counter, sleep
 import random as rd
 
 
@@ -101,7 +101,6 @@ def animate(current: CurrentState, gen_speed: float = 0.0,
                                             (win.width - logo_width) // 2,
                                             render.margin_tb)
         win.mlx.mlx_do_sync(win.mlx_ptr)
-        sleep(gen_speed)
 
     if not current.maze_type:
         maze._make_imperfect()
@@ -134,7 +133,6 @@ def animate(current: CurrentState, gen_speed: float = 0.0,
                                             (win.width - logo_width) // 2,
                                             render.margin_tb)
         win.mlx.mlx_do_sync(win.mlx_ptr)
-        sleep(path_speed)
 
     # guarda resultado final
     current.img_stack = load_themes(maze, render, win, maze_themes)
@@ -144,6 +142,7 @@ def animate(current: CurrentState, gen_speed: float = 0.0,
 
 def change_maze(current: CurrentState) -> CurrentState:
     """will randomly generate a new maze following active sizes"""
+
     # win.mlx.mlx_clear_window(win.mlx_ptr, win.win_ptr)
     now: float = perf_counter()
     last_change: float = current.last_rerender
@@ -151,7 +150,7 @@ def change_maze(current: CurrentState) -> CurrentState:
         return current
     current.last_rerender = now
 
-    current: CurrentState = reset_entry_exit(current)
+    # current: CurrentState = reset_entry_exit(current)
     w: int = current.w
     h: int = current.h
     maze_type: str = current.maze_type
