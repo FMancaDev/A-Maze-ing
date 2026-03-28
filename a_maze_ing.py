@@ -88,7 +88,6 @@ def main():
 
     mg = MazeGenerator(w, h, en, ex, seed)
 
-    print(f"\nGenerating maze using: {gen_algo}...")
     for _ in mg.generate(perfect=perfect, method=gen_algo):
         pass
 
@@ -103,7 +102,6 @@ def main():
 
     try:
         mg.export_to_file(out, en, ex, path)
-        print(f"Output saved to: {out}")
     except PermissionError:
         sys.exit(f"\nError: Permission denied when writing to {out}\n")
     except Exception as erro:
@@ -119,9 +117,6 @@ def main():
             )
     except Exception:
         pass
-
-    print(f"\nMaze generated! Seed: {seed}")
-    print(f"Output saved to: {out}")
 
 
 if __name__ == "__main__":
