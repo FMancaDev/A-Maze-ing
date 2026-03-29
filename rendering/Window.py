@@ -71,7 +71,7 @@ class Window():
 
         # print("Key:", keycode)
         if keycode == ESC_KEYCODE:
-            print('<ESC> pressed. Quitting...')
+            # print('<ESC> pressed. Quitting...')
             self.quit_prg()
         self.keys_pressed[keycode] = True
         self.check_combo()
@@ -81,11 +81,11 @@ class Window():
 
         if (self.keys_pressed.get(CTRL_KEYCODE) and
            self.keys_pressed.get(C_KEYCODE)):
-            print('<Ctr+C> pressed. Quitting...')
+            # print('<Ctr+C> pressed. Quitting...')
             self.quit_prg()
         if (self.keys_pressed.get(CTRL_KEYCODE) and
            self.keys_pressed.get(D_KEYCODE)):
-            print('<Ctrl+D> pressed. Quitting...')
+            # print('<Ctrl+D> pressed. Quitting...')
             self.quit_prg()
 
     def on_release(self, keycode: int, param: Any) -> None:
