@@ -1,4 +1,5 @@
 from mazegen.generator import MazeGenerator
+from .constants import ESC_KEYCODE, CTRL_KEYCODE, C_KEYCODE, D_KEYCODE
 from .Renderer import Renderer
 from . Window import Window
 from typing import Any, Optional, Callable
@@ -44,6 +45,7 @@ class CurrentState:
     theme_names: list[str]
     theme_index: int
     active_theme: dict[str, Any]
+    last_change: float
     logo: tuple | None = None
     rerender_delay: float = 0.2
     last_rerender: float = 0
@@ -78,7 +80,8 @@ def animate(current: CurrentState, gen_speed: float = 0.0,
         # redesenha tudo na mesma imagem
         render.fill_rect((0, 0), (win.width, win.height), bg_color, frame)
         render.draw_frame(
-            render.coor, render.border_thickness, fg_color, frame)
+            render.coor, render.border_thickness, fg_color, frame
+        )
         render.fill_42(maze.logo_cells, fg_color, frame)
         render.draw_walls(maze.grid_rows, fg_color, frame)
 
@@ -137,33 +140,70 @@ def animate(current: CurrentState, gen_speed: float = 0.0,
     # guarda resultado final
     current.img_stack = load_themes(maze, render, win, maze_themes)
     current.active_theme = current.img_stack[theme_names[theme_index]]
+    bg: dict[str, Any] = win.create_copy(current.active_theme['bg'])
+    path_frames: list = [bg]
+
+    for path_frame in render.draw_path(maze, win, bg, fg_color, path_color):
+        path_frames.append(path_frame)
+    current.active_theme['path'] = path_frames
+    current.frame_index = 0
     return current
+
+
+def print_menu(current: CurrentState) -> None:
+    theme_names: list[str] = current.theme_names
+    theme_index: int = current.theme_index
+
+    # cores
+    theme_color_code: str = argb_to_ansi(
+        maze_themes[theme_names[theme_index]][0]
+    )
+    reset: str = '\x1b[0m'
+    green: str = '\x1b[32m'
+    yellow: str = '\x1b[33m'
+    cyan: str = '\x1b[36m'
+
+    seed_val = f"{current.maze.seed}"
+    theme_val = f"{theme_names[theme_index]}"
+    size_val = f"{current.w}x{current.h}"
+    algo_val = f"{current.algo}"
+
+    seed_line = f"{yellow}Seed:{reset}    {seed_val:<28}"
+    theme_line = f"{yellow}Theme:{reset}   {theme_color_code}{theme_val:<27}{reset}"
+    size_line = f"{yellow}Size:{reset}    {size_val:<28}"
+    algo_line = f"{yellow}Algo:{reset}    {algo_val:<28}"
+
+    print(f"""
+{cyan}╔══════════════════════════════════════╗
+║           A-MAZE-ING MENU            ║
+╠══════════════════════════════════════╣
+║ {seed_line}{cyan}║
+║ {theme_line}{cyan} ║
+║ {size_line}{cyan}║
+║ {algo_line}{cyan}║
+╠══════════════════════════════════════╣
+║ {green}Controls:{reset}                            {cyan}║
+║  {green}R{reset}          → Regenerate maze        {cyan}║
+║  {green}H{reset}          → Show/hide path         {cyan}║
+║  {green}CTRL ← →{reset}   → Change theme           {cyan}║
+║  {green}ESC{reset}        → Quit                   {cyan}║
+╚══════════════════════════════════════╝{reset}
+""")
 
 
 def change_maze(current: CurrentState) -> CurrentState:
     """will randomly generate a new maze following active sizes"""
 
-    # win.mlx.mlx_clear_window(win.mlx_ptr, win.win_ptr)
     now: float = perf_counter()
-    last_change: float = current.last_rerender
-    if now - last_change < current.rerender_delay:
+    if now - current.last_change < current.rerender_delay:
         return current
     current.last_rerender = now
-
-    # current: CurrentState = reset_entry_exit(current)
-    w: int = current.w
-    h: int = current.h
-    maze_type: str = current.maze_type
-    algo: str = current.algo
-    entry: tuple[int, int] = current.entry
-    exit: tuple[int, int] = current.exit
-    render: Renderer = current.render
-    win: Window = current.win
-    theme_names: list[str] = current.theme_names
-    theme_index: int = current.theme_index
-
-    current.maze = MazeGenerator(w, h, entry, exit, rd.randint(0, 999999))
-    return animate(current)
+    current.maze = MazeGenerator(current.w, current.h,
+                                 current.entry, current.exit,
+                                 rd.randint(0, 999999))
+    current = animate(current)
+    print_menu(current)
+    return current
 
 
 def reset_entry_exit(current: CurrentState) -> CurrentState:
@@ -211,12 +251,10 @@ def switch_theme(current: CurrentState,
         current.theme_index = (theme_index - 1) % len(theme_names)
     else:
         current.theme_index = (theme_index + 1) % len(theme_names)
-    current.active_theme = img_stack[theme_names[current.theme_index]]
-    color: str = argb_to_ansi(maze_themes[theme_names[theme_index]][0])
-    white: str = argb_to_ansi(0xFFFFFFFF)
 
-    print(f'Theme set: "{color}{theme_names[theme_index]}{white}"')
+    current.active_theme = img_stack[theme_names[current.theme_index]]
     current.logo = put_logo(current)
+    print_menu(current)
     return current
 
 
@@ -225,6 +263,7 @@ def switch_theme(current: CurrentState,
 
 def parse_config(filename) -> tuple:
     """Parses and validates the maze configuration file robustly."""
+
     conf = {}
     required = ["WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT"]
 
@@ -373,7 +412,7 @@ def show_img(current: CurrentState, overlay: bool = False) -> None:
                                         current.render.margin_tb)
 
 
-def welcome_message() -> None:
+def welcome_message(current: CurrentState) -> None:
     print("""
  █████╗       ███╗   ███╗ █████╗ ███████╗███████╗    ██╗███╗   ██╗ ██████╗
 ██╔══██╗      ████╗ ████║██╔══██╗╚══███╔╝██╔════╝    ██║████╗  ██║██╔════╝
@@ -382,3 +421,4 @@ def welcome_message() -> None:
 ██║  ██║      ██║ ╚═╝ ██║██║  ██║███████╗███████╗    ██║██║ ╚████║╚██████╔╝
 ╚═╝  ╚═╝      ╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝    ╚═╝╚═╝  ╚═══╝ ╚═════╝
 """)
+    print_menu(current)
