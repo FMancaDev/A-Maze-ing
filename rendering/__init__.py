@@ -13,4 +13,5 @@ from .utils import (parse_config,
                     load_themes, switch_theme,
                     welcome_message,
                     put_logo, CurrentState,
-                    animate, maze_themes)
+                    animate, maze_themes,
+                    print_menu)
