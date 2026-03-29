@@ -35,9 +35,9 @@ active_theme: dict = {}
 current = rend.CurrentState(win, render, maze, w, h, entry, exit,
                             maze_type, algo, img_stack, theme_names,
                             theme_index, active_theme, last_change)
-rend.welcome_message()
-current = rend.animate(current)
 
+rend.welcome_message(current)
+current = rend.animate(current)
 
 # ============= Functions =============
 
