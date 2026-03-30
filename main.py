@@ -45,19 +45,18 @@ current = rend.starter(current)
 def key_actions(param: Any) -> None:
     """base function for key events"""
     global current
-    if win.keys_pressed.get(CTRL) and win.keys_pressed.get(RIGHT):
+    if True in win.keys_pressed.values():
         current.algo_anim = False
+
+    if win.keys_pressed.get(CTRL) and win.keys_pressed.get(RIGHT):
         current = rend.switch_theme(current)
         current.logo = rend.put_logo(current)
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(LEFT):
-        current.algo_anim = False
         current = rend.switch_theme(current, reverse=True)
         current.logo = rend.put_logo(current)
     if win.keys_pressed.get(R):
-        current.algo_anim = False
         current = rend.change_maze(current)
     if win.keys_pressed.get(UP):
-        current.algo_anim = False
         try:
             current.h += 1
             sleep(0.2)
@@ -65,13 +64,11 @@ def key_actions(param: Any) -> None:
         except ValueError:
             current.h -= 1
     if win.keys_pressed.get(DOWN):
-        current.algo_anim = False
         current.h = current.h - 1 if current.h > 3 else current.h
         sleep(0.2)
         current = rend.change_maze(current)
 
     if win.keys_pressed.get(RIGHT) and not win.keys_pressed.get(CTRL):
-        current.algo_anim = False
         try:
             current.w += 1
             sleep(0.2)
@@ -79,13 +76,11 @@ def key_actions(param: Any) -> None:
         except ValueError:
             current.w -= 1
     if win.keys_pressed.get(LEFT) and not win.keys_pressed.get(CTRL):
-        current.algo_anim = False
         current.w = current.w - 1 if current.w > 3 else current.w
         sleep(0.2)
         current = rend.change_maze(current)
 
     if win.keys_pressed.get(H):
-        current.algo_anim = False
         rend.show_img(current, True)
     else:
         rend.show_img(current, False)
