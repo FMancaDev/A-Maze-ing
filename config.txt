@@ -1,8 +1,8 @@
 # Configuração do Labirinto
-WIDTH=35
-HEIGHT=35
+WIDTH=5
+HEIGHT=5
 ENTRY=0,0
-EXIT=34,34
+EXIT=4,4
 OUTPUT_FILE=maze.txt
 PERFECT=True
 GEN_ALGO=backtracking

@@ -1,5 +1,5 @@
 import sys
-from typing import Any, Generator
+from typing import Any, Generator, Optional
 import struct
 from mazegen.generator import MazeGenerator
 from .Window import Window
@@ -132,20 +132,26 @@ class Renderer():
         }
 
     def draw_maze(self, maze: MazeGenerator,
-                  img: dict[str, Any], color: int) -> None:
+                  img: dict[str, Any], fg_color: int,
+                  bg_color: Optional[int], generation: bool = False) -> None:
 
         self.set_layout(maze)
+
+        if bg_color:
+            self.fill_rect((0, 0), (self.win_width, self.win_height),
+                           bg_color, img)
 
         self.border_thickness: int = (1 if self.cell_size < 5 else
                                       self.cell_size // 5)
 
-        self.draw_frame(self.coor, self.border_thickness, color, img)
+        self.draw_frame(self.coor, self.border_thickness, fg_color, img)
 
-        self.fill_42(maze.logo_cells, color, img)
+        self.fill_42(maze.logo_cells, fg_color, img)
 
-        self.draw_walls(maze.grid_rows, color, img)
+        self.draw_walls(maze.grid_rows, fg_color, img)
 
-        self.draw_start_end_points(maze, img, color)
+        if not generation:
+            self.draw_start_end_points(maze, img, fg_color)
 
     def draw_walls(self, maze_grid: list[list[int]],
                    color: int, img: dict[str, Any]) -> None:
@@ -197,7 +203,7 @@ class Renderer():
             self.fill_rect((tl, ty),
                            (tl + cs, ty + cs),
                            path_color, step)
-            self.draw_maze(maze, step, maze_color)
+            self.draw_maze(maze, step, maze_color, None)
             img = step
             yield step
 

@@ -46,6 +46,9 @@ class CurrentState:
     theme_index: int
     active_theme: dict[str, Any]
     last_change: float
+    algo_stack: Optional[list] = None
+    algo_anim: bool = True
+    algo_index: int = 0
     logo: tuple | None = None
     rerender_delay: float = 0.2
     last_rerender: float = 0
@@ -55,8 +58,9 @@ class CurrentState:
     frame_delay: float = 0.05
 
 
-def animate(current: CurrentState, gen_speed: float = 0.0,
+def starter(current: CurrentState, gen_speed: float = 0.0,
             path_speed: float = 0.0) -> CurrentState:
+    """loads all the needed frames and starts by animating the wall breaks"""
 
     win: Window = current.win
     render: Renderer = current.render
@@ -72,19 +76,16 @@ def animate(current: CurrentState, gen_speed: float = 0.0,
     render.set_layout(maze)
     render.border_thickness = (1 if render.cell_size < 5
                                else render.cell_size // 5)
-
+    anim_stack: list[dict[str, Any]] = []
+    anim_stack.append(frame)
     # geracao
     runner = maze.generate(perfect=current.maze_type, method=current.algo)
     for cell in runner:
 
         # redesenha tudo na mesma imagem
-        render.fill_rect((0, 0), (win.width, win.height), bg_color, frame)
-        render.draw_frame(
-            render.coor, render.border_thickness, fg_color, frame
-        )
-        render.fill_42(maze.logo_cells, fg_color, frame)
-        render.draw_walls(maze.grid_rows, fg_color, frame)
-
+        frame = win.create_copy(frame)
+        render.draw_maze(maze, frame, fg_color=fg_color,
+                         bg_color=bg_color, generation=True)
         # cursor na celula atual
         cs = render.cell_size
         tlx, tly = render.coor['tl']
@@ -95,47 +96,16 @@ def animate(current: CurrentState, gen_speed: float = 0.0,
                          (cx + cs - 2, cy + cs - 2),
                          path_color, frame)
 
-        win.mlx.mlx_put_image_to_window(win.mlx_ptr, win.win_ptr,
-                                        frame['ptr'], 0, 0)
-        if render.logo_area:
-            logo_ptr, logo_width, logo_height = put_logo(current)
-            win.mlx.mlx_put_image_to_window(win.mlx_ptr, win.win_ptr,
-                                            logo_ptr,
-                                            (win.width - logo_width) // 2,
-                                            render.margin_tb)
-        win.mlx.mlx_do_sync(win.mlx_ptr)
+        anim_stack.append(frame)
 
     if not current.maze_type:
         maze._make_imperfect()
     maze._seal_logo()
 
     # frame final
-    render.fill_rect((0, 0), (win.width, win.height), bg_color, frame)
-    render.draw_maze(maze, frame, fg_color)
-
-    # solucao
-    path: list = maze.solve(maze.entry, maze.exit)
-    path_t: int = round(render.border_thickness * 1.2)
-    cs = render.cell_size
-    tlx, tly = render.coor['tl']
-
-    for square in path:
-        scx = square[0] * cs + tlx + cs // 2
-        scy = square[1] * cs + tly + cs // 2
-        render.fill_circle((scx - path_t, scy - path_t),
-                           (scx + path_t, scy + path_t),
-                           path_color, frame)
-
-        win.mlx.mlx_put_image_to_window(win.mlx_ptr, win.win_ptr,
-                                        frame['ptr'], 0, 0)
-
-        if render.logo_area:
-            logo_ptr, logo_width, logo_height = put_logo(current)
-            win.mlx.mlx_put_image_to_window(win.mlx_ptr, win.win_ptr,
-                                            logo_ptr,
-                                            (win.width - logo_width) // 2,
-                                            render.margin_tb)
-        win.mlx.mlx_do_sync(win.mlx_ptr)
+    render.draw_maze(maze, frame, fg_color, bg_color)
+    anim_stack.append(frame)
+    current.algo_stack = anim_stack
 
     # guarda resultado final
     current.img_stack = load_themes(maze, render, win, maze_themes)
@@ -147,6 +117,8 @@ def animate(current: CurrentState, gen_speed: float = 0.0,
         path_frames.append(path_frame)
     current.active_theme['path'] = path_frames
     current.frame_index = 0
+    current.algo_anim = True
+    current.algo_index = 0
     return current
 
 
@@ -201,7 +173,7 @@ def change_maze(current: CurrentState) -> CurrentState:
     current.maze = MazeGenerator(current.w, current.h,
                                  current.entry, current.exit,
                                  rd.randint(0, 999999))
-    current = animate(current)
+    current = starter(current)
     print_menu(current)
     return current
 
@@ -229,7 +201,7 @@ def load_themes(maze: MazeGenerator,
     for name, colors in maze_themes.items():
         bg: dict[str, Any] = win.create_img()
         render.fill_rect((0, 0), (win.width, win.height), colors[0], bg)
-        render.draw_maze(maze, bg, colors[1])
+        render.draw_maze(maze, bg, colors[1], colors[0])
         img_stack[name] = {'bg': bg}
 
     return img_stack
@@ -361,7 +333,20 @@ def show_img(current: CurrentState, overlay: bool = False) -> None:
         return
     current.last_frame_change = now
 
-    if overlay:
+    if current.algo_anim:
+        stack = current.algo_stack
+        index = current.algo_index
+        if (current.algo_index < len(current.algo_stack)):
+            win.mlx.mlx_put_image_to_window(win.mlx_ptr,
+                                            win.win_ptr,
+                                            stack[index]['ptr'],
+                                            0, 0)
+            current.algo_index += 1
+        else:
+            current.algo_index = 0
+            current.algo_anim = False
+
+    elif overlay:
         if not active_theme.get('path'):
             print('Generating path...')
             path: list = []
