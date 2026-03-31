@@ -3,7 +3,7 @@ import random as rand
 from typing import Any
 from mazegen.generator import MazeGenerator
 import rendering as rend
-from rendering import CTRL, LEFT, RIGHT, UP, DOWN, R, H
+from rendering import CTRL, LEFT, RIGHT, UP, DOWN, R, H, D, C, ESC
 from time import sleep
 
 
@@ -47,7 +47,15 @@ def key_actions(param: Any) -> None:
     global current
     if True in win.keys_pressed.values():
         current.algo_anim = False
-
+    if (win.keys_pressed.get(CTRL) and win.keys_pressed.get(D)):
+        print('<Ctr+D> pressed. Quitting...')
+        current.win.quit_prg()
+    if (win.keys_pressed.get(CTRL) and win.keys_pressed.get(C)):
+        print('<Ctr+C> pressed. Quitting...')
+        current.win.quit_prg()
+    if (win.keys_pressed.get(ESC)):
+        print('<ESC> pressed. Quitting...')
+        current.win.quit_prg()
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(RIGHT):
         current = rend.switch_theme(current)
         current.logo = rend.put_logo(current)
@@ -88,10 +96,10 @@ def key_actions(param: Any) -> None:
 
 # ============= First Render =============
 
-win.mlx.mlx_put_image_to_window(current.win.mlx_ptr,
+"""win.mlx.mlx_put_image_to_window(current.win.mlx_ptr,
                                 current.win.win_ptr,
                                 current.active_theme['bg']['ptr'],
-                                0, 0)
+                                0, 0)"""
 
 # ============= Loops =============
 win.mlx.mlx_loop_hook(win.mlx_ptr, key_actions, None)

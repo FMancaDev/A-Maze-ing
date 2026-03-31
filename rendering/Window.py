@@ -2,8 +2,6 @@ from mlx import Mlx
 from ctypes import c_void_p, c_uint
 from typing import Any
 import os
-from .constants import (ESC_KEYCODE, CTRL_KEYCODE,
-                        C_KEYCODE, D_KEYCODE)
 
 
 class Window():
@@ -68,25 +66,7 @@ class Window():
     def on_keypress(self, keycode: int, param: Any) -> None:
         """checks and stores pressed keys, and checks for combos
         that can kill the program"""
-
-        # print("Key:", keycode)
-        if keycode == ESC_KEYCODE:
-            # print('<ESC> pressed. Quitting...')
-            self.quit_prg()
         self.keys_pressed[keycode] = True
-        self.check_combo()
-
-    def check_combo(self) -> None:
-        """checks for pressed key combinations"""
-
-        if (self.keys_pressed.get(CTRL_KEYCODE) and
-           self.keys_pressed.get(C_KEYCODE)):
-            # print('<Ctr+C> pressed. Quitting...')
-            self.quit_prg()
-        if (self.keys_pressed.get(CTRL_KEYCODE) and
-           self.keys_pressed.get(D_KEYCODE)):
-            # print('<Ctrl+D> pressed. Quitting...')
-            self.quit_prg()
 
     def on_release(self, keycode: int, param: Any) -> None:
         """sets the key state as False upon release"""

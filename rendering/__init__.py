@@ -6,7 +6,10 @@ from .constants import (H_KEYCODE as H,
                         CTRL_KEYCODE as CTRL,
                         UP_ARROW_KEYCODE as UP,
                         DOWN_ARROW_KEYCODE as DOWN,
-                        R_KEYCODE as R)
+                        R_KEYCODE as R,
+                        D_KEYCODE as D,
+                        C_KEYCODE as C,
+                        ESC_KEYCODE as ESC)
 
 from .utils import (parse_config,
                     change_maze, show_img,

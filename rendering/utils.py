@@ -2,7 +2,7 @@ from mazegen.generator import MazeGenerator
 from .constants import ESC_KEYCODE, CTRL_KEYCODE, C_KEYCODE, D_KEYCODE
 from .Renderer import Renderer
 from . Window import Window
-from typing import Any, Optional, Callable
+from typing import Any, Optional, Callable, Generator
 import sys
 from time import perf_counter
 from dataclasses import dataclass
@@ -46,9 +46,9 @@ class CurrentState:
     theme_index: int
     active_theme: dict[str, Any]
     last_change: float
-    algo_stack: Optional[list] = None
+    algo_gen: Optional[Generator] = None
     algo_anim: bool = True
-    algo_index: int = 0
+    base_img: bool = False
     logo: tuple | None = None
     rerender_delay: float = 0.2
     last_rerender: float = 0
@@ -71,43 +71,19 @@ def starter(current: CurrentState, gen_speed: float = 0.0,
     fg_color: int = maze_themes[theme_names[theme_index]][1]
     path_color: int = maze_themes[theme_names[theme_index]][2]
 
-    # mesma imagem em todos os frames
-    frame: dict[str, Any] = win.create_img()
-    render.set_layout(maze)
-    render.border_thickness = (1 if render.cell_size < 5
-                               else render.cell_size // 5)
-    anim_stack: list[dict[str, Any]] = []
-    anim_stack.append(frame)
     # geracao
-    runner = maze.generate(perfect=current.maze_type, method=current.algo)
-    for cell in runner:
-
-        # redesenha tudo na mesma imagem
-        frame = win.create_copy(frame)
-        render.draw_maze(maze, frame, fg_color=fg_color,
-                         bg_color=bg_color, generation=True)
-        # cursor na celula atual
-        cs = render.cell_size
-        tlx, tly = render.coor['tl']
-        cx = cell[0] * cs + tlx
-        cy = cell[1] * cs + tly
-
-        render.fill_rect((cx + 2, cy + 2),
-                         (cx + cs - 2, cy + cs - 2),
-                         path_color, frame)
-
-        anim_stack.append(frame)
+    current.algo_gen = maze.generate(perfect=current.maze_type,
+                                     method=current.algo)
+    next(current.algo_gen)
+    frame: dict[str, Any] = win.create_img()
+    render.draw_maze(maze, frame, fg_color=fg_color,
+                     bg_color=bg_color, generation=True)
+    current.starter_frame = frame
 
     if not current.maze_type:
         maze._make_imperfect()
     maze._seal_logo()
 
-    # frame final
-    render.draw_maze(maze, frame, fg_color, bg_color)
-    anim_stack.append(frame)
-    current.algo_stack = anim_stack
-
-    # guarda resultado final
     current.img_stack = load_themes(maze, render, win, maze_themes)
     current.active_theme = current.img_stack[theme_names[theme_index]]
     bg: dict[str, Any] = win.create_copy(current.active_theme['bg'])
@@ -117,8 +93,9 @@ def starter(current: CurrentState, gen_speed: float = 0.0,
         path_frames.append(path_frame)
     current.active_theme['path'] = path_frames
     current.frame_index = 0
+
     current.algo_anim = True
-    current.algo_index = 0
+    current.base_img = False
     return current
 
 
@@ -325,8 +302,12 @@ def show_img(current: CurrentState, overlay: bool = False) -> None:
     active_theme: dict[str, Any] = current.active_theme
     theme_names: list[str] = current.theme_names
     theme_index: int = current.theme_index
+    render: Renderer = current.render
     maze: MazeGenerator = current.maze
     win: Window = current.win
+    bg_color: int = maze_themes[theme_names[theme_index]][0]
+    fg_color: int = maze_themes[theme_names[theme_index]][1]
+    path_color: int = maze_themes[theme_names[theme_index]][2]
 
     now: float = perf_counter()
     if now - current.last_frame_change < current.frame_delay:
@@ -334,28 +315,49 @@ def show_img(current: CurrentState, overlay: bool = False) -> None:
     current.last_frame_change = now
 
     if current.algo_anim:
-        stack = current.algo_stack
-        index = current.algo_index
-        if (current.algo_index < len(current.algo_stack)):
+        try:
+            runner = current.algo_gen
+            frame = current.starter_frame
+            cell = next(runner)
+            render.draw_maze(maze, frame, fg_color, bg_color, True)
+            cs = render.cell_size
+            tlx, tly = render.coor['tl']
+            cx = cell[0] * cs + tlx
+            cy = cell[1] * cs + tly
+
+            render.fill_rect((cx + 2, cy + 2),
+                             (cx + cs - 2, cy + cs - 2),
+                             path_color, frame)
             win.mlx.mlx_put_image_to_window(win.mlx_ptr,
                                             win.win_ptr,
-                                            stack[index]['ptr'],
-                                            0, 0)
-            current.algo_index += 1
-        else:
-            current.algo_index = 0
-            current.algo_anim = False
+                                            frame['ptr'], 0, 0)
+            current.starter_frame = frame
+        except StopIteration:
+            current.algo_anim = False\
+
+    elif not current.base_img:
+        for _ in current.algo_gen:
+            pass
+        print('Generation animation stopped. Loading maze...')
+        current.base_img = True
+        current.img_stack = load_themes(maze, render, win, maze_themes)
+        current.active_theme = current.img_stack[theme_names[theme_index]]
+        bg: dict[str, Any] = win.create_copy(current.active_theme['bg'])
+        path_frames: list = [bg]
+
+        for path_frame in render.draw_path(maze, win, bg, fg_color, path_color):
+            path_frames.append(path_frame)
+        current.active_theme['path'] = path_frames
+        current.frame_index = 0
 
     elif overlay:
         if not active_theme.get('path'):
             print('Generating path...')
             path: list = []
             bg: dict[str, Any] = current.win.create_copy(active_theme['bg'])
-            maze_color: int = maze_themes[theme_names[theme_index]][1]
-            path_color: int = maze_themes[theme_names[theme_index]][2]
             generator: Callable = current.render.draw_path
             path.append(bg)
-            for frame in generator(maze, win, bg, maze_color, path_color):
+            for frame in generator(maze, win, bg, fg_color, path_color):
                 bg = win.create_copy(frame)
                 path.append(frame)
             current.active_theme['path'] = path
