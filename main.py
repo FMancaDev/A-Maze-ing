@@ -45,8 +45,7 @@ current = rend.starter(current)
 def key_actions(param: Any) -> None:
     """base function for key events"""
     global current
-    if True in win.keys_pressed.values():
-        current.algo_anim = False
+
     if (win.keys_pressed.get(CTRL) and win.keys_pressed.get(D)):
         print('<Ctr+D> pressed. Quitting...')
         current.win.quit_prg()
@@ -89,6 +88,7 @@ def key_actions(param: Any) -> None:
         current = rend.change_maze(current)
 
     if win.keys_pressed.get(H):
+        current.algo_anim = False
         rend.show_img(current, True)
     else:
         rend.show_img(current, False)

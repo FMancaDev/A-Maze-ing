@@ -1,5 +1,4 @@
 from mazegen.generator import MazeGenerator
-from .constants import ESC_KEYCODE, CTRL_KEYCODE, C_KEYCODE, D_KEYCODE
 from .Renderer import Renderer
 from . Window import Window
 from typing import Any, Optional, Callable, Generator
@@ -118,7 +117,8 @@ def print_menu(current: CurrentState) -> None:
     algo_val = f"{current.algo}"
 
     seed_line = f"{yellow}Seed:{reset}    {seed_val:<28}"
-    theme_line = f"{yellow}Theme:{reset}   {theme_color_code}{theme_val:<27}{reset}"
+    theme_line = (f"{yellow}Theme:{reset}   " +
+                  f"{theme_color_code}{theme_val:<27}{reset}")
     size_line = f"{yellow}Size:{reset}    {size_val:<28}"
     algo_line = f"{yellow}Algo:{reset}    {algo_val:<28}"
 
@@ -135,6 +135,8 @@ def print_menu(current: CurrentState) -> None:
 ║  {green}R{reset}          → Regenerate maze        {cyan}║
 ║  {green}H{reset}          → Show/hide path         {cyan}║
 ║  {green}CTRL ← →{reset}   → Change theme           {cyan}║
+║  {green}← →{reset}        → Change width           {cyan}║
+║  {green}↑ ↓{reset}        → Change height          {cyan}║
 ║  {green}ESC{reset}        → Quit                   {cyan}║
 ╚══════════════════════════════════════╝{reset}
 """)
@@ -333,7 +335,7 @@ def show_img(current: CurrentState, overlay: bool = False) -> None:
                                             frame['ptr'], 0, 0)
             current.starter_frame = frame
         except StopIteration:
-            current.algo_anim = False\
+            current.algo_anim = False
 
     elif not current.base_img:
         for _ in current.algo_gen:
@@ -345,7 +347,9 @@ def show_img(current: CurrentState, overlay: bool = False) -> None:
         bg: dict[str, Any] = win.create_copy(current.active_theme['bg'])
         path_frames: list = [bg]
 
-        for path_frame in render.draw_path(maze, win, bg, fg_color, path_color):
+        for path_frame in render.draw_path(maze, win,
+                                           bg, fg_color,
+                                           path_color):
             path_frames.append(path_frame)
         current.active_theme['path'] = path_frames
         current.frame_index = 0
