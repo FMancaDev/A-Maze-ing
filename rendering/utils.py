@@ -337,9 +337,14 @@ def show_img(current: CurrentState, overlay: bool = False) -> None:
         except StopIteration:
             current.algo_anim = False
 
+            import __main__
+            if hasattr(__main__, 'save_maze_now') and hasattr(__main__, 'output_file'):
+                __main__.save_maze_now(current, __main__.output_file)
+
     elif not current.base_img:
-        for _ in current.algo_gen:
-            pass
+        if current.algo_gen:
+            for _ in current.algo_gen:
+                pass
         print('Generation animation stopped. Loading maze...')
         current.base_img = True
         current.img_stack = load_themes(maze, render, win, maze_themes)

@@ -18,8 +18,17 @@ entry: tuple[int, int]
 exit: tuple[int, int]
 maze_type: str
 algo: str
-w, h, entry, exit, _, maze_type, algo = rend.parse_config(sys.argv[1])
+w, h, entry, exit, output_file, maze_type, algo = rend.parse_config(sys.argv[1])
 seed: int = int(sys.argv[2] if len(sys.argv) == 3 else rand.randint(0, 999999))
+
+
+# =============== Helper =================
+
+def save_maze_now(current, output_file):
+    path = current.maze.solve(current.entry, current.exit)
+    current.maze.export_to_file(output_file, current.entry, current.exit, path)
+    print(f"Maze saved to {output_file} automatically.")
+
 
 # ============= Initialization =============
 
@@ -40,7 +49,6 @@ rend.welcome_message(current)
 current = rend.starter(current)
 
 # ============= Functions =============
-
 
 def key_actions(param: Any) -> None:
     """base function for key events"""
