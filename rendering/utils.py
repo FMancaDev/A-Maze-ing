@@ -212,8 +212,31 @@ def switch_theme(current: CurrentState,
 # =================================
 
 
+def get_logo_coords(w: int, h: int) -> list[tuple[int, int]]:
+    """make sure entry and exit is not on top of logo"""
+    if w < 10 or h < 8:
+        return []
+    atual_x, atual_y = w // 2, h // 2
+    pattern = [
+        "X X XXX",
+        "X X   X",
+        "XXX XXX",
+        "  X X  ",
+        "  X XXX",
+    ]
+    coords = []
+    start_x = atual_x - len(pattern[0]) // 2
+    start_y = atual_y - len(pattern) // 2
+    for index_y, row in enumerate(pattern):
+        for index_x, c in enumerate(row):
+            if c == "X":
+                x, y = start_x + index_x, start_y + index_x
+                if 0 <= x < w and 0 <= y < h:
+                    coords.append((x, y))
+    return coords
+
 def parse_config(filename) -> tuple:
-    """Parses and validates the maze configuration file robustly."""
+    """Parses and validates the maze configuration file robustly"""
 
     conf = {}
     required = ["WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT"]
@@ -266,6 +289,12 @@ def parse_config(filename) -> tuple:
                 )
         if en == ex:
             sys.exit("\nError: ENTRY and EXIT cannot be the same")
+
+        logo_cells = get_logo_coords(w, h)
+        if en in logo_cells:
+            sys.exit(f"\nError: ENTRY {en} is on top of '42' logo")
+        if ex in logo_cells:
+            sys.exit(f"\nError: EXIT {ex} is on top of '42' logo")
 
         perfect_val = conf["PERFECT"].strip().lower()
         if perfect_val not in ["true", "false"]:
@@ -345,7 +374,6 @@ def show_img(current: CurrentState, overlay: bool = False) -> None:
         if current.algo_gen:
             for _ in current.algo_gen:
                 pass
-        print('Generation animation stopped. Loading maze...')
         current.base_img = True
         current.img_stack = load_themes(maze, render, win, maze_themes)
         current.active_theme = current.img_stack[theme_names[theme_index]]
@@ -361,7 +389,6 @@ def show_img(current: CurrentState, overlay: bool = False) -> None:
 
     elif overlay:
         if not active_theme.get('path'):
-            print('Generating path...')
             path: list = []
             bg: dict[str, Any] = current.win.create_copy(active_theme['bg'])
             generator: Callable = current.render.draw_path

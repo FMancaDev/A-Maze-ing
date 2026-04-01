@@ -27,7 +27,6 @@ seed: int = int(sys.argv[2] if len(sys.argv) == 3 else rand.randint(0, 999999))
 def save_maze_now(current, output_file):
     path = current.maze.solve(current.entry, current.exit)
     current.maze.export_to_file(output_file, current.entry, current.exit, path)
-    print(f"Maze saved to {output_file} automatically.")
 
 
 # ============= Initialization =============
@@ -55,13 +54,10 @@ def key_actions(param: Any) -> None:
     global current
 
     if (win.keys_pressed.get(CTRL) and win.keys_pressed.get(D)):
-        print('<Ctr+D> pressed. Quitting...')
         current.win.quit_prg()
     if (win.keys_pressed.get(CTRL) and win.keys_pressed.get(C)):
-        print('<Ctr+C> pressed. Quitting...')
         current.win.quit_prg()
     if (win.keys_pressed.get(ESC)):
-        print('<ESC> pressed. Quitting...')
         current.win.quit_prg()
     if win.keys_pressed.get(CTRL) and win.keys_pressed.get(RIGHT):
         current = rend.switch_theme(current)
