@@ -1,123 +1,106 @@
 import sys
-import random as rd
-from datetime import datetime
+import random as rand
+from typing import Any
 from mazegen.generator import MazeGenerator
+import rendering as rend
+from rendering import CTRL, LEFT, RIGHT, UP, DOWN, R, H, D, C, ESC
+from time import sleep
 
 
-def parse_config(filename):
-    """Parses and validates the maze configuration file robustly."""
-    conf = {}
-    required = ["WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT"]
+# ============= Grabing config =============
 
-    try:
-        with open(filename, "r") as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                k, v = [x.strip() for x in line.split("=", 1)]
-                if k in conf:
-                    sys.exit(f"\nError: Duplicate key '{k}'")
-                conf[k] = v
+if len(sys.argv) < 2 or len(sys.argv) > 3:
+    sys.exit("\nUsage: a-maze-ing config.txt [seed]")
 
-        for r in required:
-            if r not in conf:
-                sys.exit(f"\nError: Missing mandatory key '{r}'")
+w: int
+h: int
+entry: tuple[int, int]
+exit: tuple[int, int]
+maze_type: str
+algo: str
+w, h, entry, exit, _, maze_type, algo = rend.parse_config(sys.argv[1])
+seed: int = int(sys.argv[2] if len(sys.argv) == 3 else rand.randint(0, 999999))
 
-        # Validacao de WIDTH e HEIGHT
+# ============= Initialization =============
+
+win: rend.Window = rend.Window(800, 800)
+render: rend.Renderer = rend.Renderer(win.width, win.height)
+
+maze = MazeGenerator(w, h, entry, exit, seed)
+theme_names: list[str] = list(rend.maze_themes.keys())
+theme_index: int = 0
+last_change: float = 0
+img_stack: dict = {}
+active_theme: dict = {}
+current = rend.CurrentState(win, render, maze, w, h, entry, exit,
+                            maze_type, algo, img_stack, theme_names,
+                            theme_index, active_theme, last_change)
+
+rend.welcome_message(current)
+current = rend.starter(current)
+
+# ============= Functions =============
+
+
+def key_actions(param: Any) -> None:
+    """base function for key events"""
+    global current
+
+    if (win.keys_pressed.get(CTRL) and win.keys_pressed.get(D)):
+        print('<Ctr+D> pressed. Quitting...')
+        current.win.quit_prg()
+    if (win.keys_pressed.get(CTRL) and win.keys_pressed.get(C)):
+        print('<Ctr+C> pressed. Quitting...')
+        current.win.quit_prg()
+    if (win.keys_pressed.get(ESC)):
+        print('<ESC> pressed. Quitting...')
+        current.win.quit_prg()
+    if win.keys_pressed.get(CTRL) and win.keys_pressed.get(RIGHT):
+        current = rend.switch_theme(current)
+        current.logo = rend.put_logo(current)
+    if win.keys_pressed.get(CTRL) and win.keys_pressed.get(LEFT):
+        current = rend.switch_theme(current, reverse=True)
+        current.logo = rend.put_logo(current)
+    if win.keys_pressed.get(R):
+        current = rend.change_maze(current)
+    if win.keys_pressed.get(UP):
         try:
-            w = int(conf["WIDTH"])
-            h = int(conf["HEIGHT"])
+            current.h += 1
+            sleep(0.2)
+            current = rend.change_maze(current)
         except ValueError:
-            sys.exit("\nError: WIDTH and HEIGHT must be integers")
+            current.h -= 1
+    if win.keys_pressed.get(DOWN):
+        current.h = current.h - 1 if current.h > 3 else current.h
+        sleep(0.2)
+        current = rend.change_maze(current)
 
-        if w < 1 or h < 1:
-            sys.exit("\nError: WIDTH and HEIGHT must be positive integers")
-        elif w < 3 or h < 3:
-            sys.exit("\nError: Minimum dimensions are 3x3")
-
-        # Validacao de ENTRY e EXIT
-        for key_name in ["ENTRY", "EXIT"]:
-            parts = conf[key_name].split(",")
-            if len(parts) != 2:
-                sys.exit(f"\nError: {key_name} must have exactly X,Y")
-            try:
-                coords = tuple(int(x.strip()) for x in parts)
-            except ValueError:
-                sys.exit(f"\nError: {key_name} coordinates must be integers")
-            conf[key_name] = coords
-
-        en = conf["ENTRY"]
-        ex = conf["EXIT"]
-
-        for coord, name in [(en, "ENTRY"), (ex, "EXIT")]:
-            if not (0 <= coord[0] < w and 0 <= coord[1] < h):
-                sys.exit(
-                    f"\nError: {name} {coord} is outside maze bounds ({w}x{h})"
-                )
-        if en == ex:
-            sys.exit("\nError: ENTRY and EXIT cannot be the same")
-
-        perfect_val = conf["PERFECT"].strip().lower()
-        if perfect_val not in ["true", "false"]:
-            sys.exit("\nError: PERFECT must be True or False")
-        perfect = (perfect_val == "true")
-
-        gen_algo = conf.get("GEN_ALGO", "backtracking").strip().lower()
-
-        return w, h, en, ex, conf["OUTPUT_FILE"], perfect, gen_algo
-
-    except Exception as e:
-        sys.exit(f"\nConfig Error: {e}")
-
-
-def main():
-    """Main entry point for the a-maze-ing package."""
-    if len(sys.argv) < 2 or len(sys.argv) > 3:
-        sys.exit("\nUsage: a-maze-ing config.txt [seed]")
-
-    w, h, en, ex, out, perfect, gen_algo = parse_config(sys.argv[1])
-
-    if len(sys.argv) == 3:
+    if win.keys_pressed.get(RIGHT) and not win.keys_pressed.get(CTRL):
         try:
-            seed = int(sys.argv[2])
+            current.w += 1
+            sleep(0.2)
+            current = rend.change_maze(current)
         except ValueError:
-            sys.exit("\nError: Seed must be an integer.")
+            current.w -= 1
+    if win.keys_pressed.get(LEFT) and not win.keys_pressed.get(CTRL):
+        current.w = current.w - 1 if current.w > 3 else current.w
+        sleep(0.2)
+        current = rend.change_maze(current)
+
+    if win.keys_pressed.get(H):
+        current.algo_anim = False
+        rend.show_img(current, True)
     else:
-        seed = rd.randint(0, 999999)
-
-    mg = MazeGenerator(w, h, en, ex, seed)
-
-    for _ in mg.generate(perfect=perfect, method=gen_algo):
-        pass
-
-    mg._seal_logo()
-    if not perfect:
-        mg._make_imperfect()
-
-    path = mg.solve(en, ex)
-
-    if not path:
-        print("\nWarning: No path found (Check if ENTRY/EXIT is blocked)")
-
-    try:
-        mg.export_to_file(out, en, ex, path)
-    except PermissionError:
-        sys.exit(f"\nError: Permission denied when writing to {out}\n")
-    except Exception as erro:
-        sys.exit(f"\nError saving file: {erro}")
-
-    # Logs de Seed
-    try:
-        with open("seed_logs.txt", "a") as log:
-            ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            log.write(
-                f"[{ts}] Seed: {seed} | Size: {w}x{h} | Algo: "
-                f"{gen_algo} | File: {out}\n"
-            )
-    except Exception:
-        pass
+        rend.show_img(current, False)
 
 
-if __name__ == "__main__":
-    main()
+# ============= First Render =============
+
+"""win.mlx.mlx_put_image_to_window(current.win.mlx_ptr,
+                                current.win.win_ptr,
+                                current.active_theme['bg']['ptr'],
+                                0, 0)"""
+
+# ============= Loops =============
+win.mlx.mlx_loop_hook(win.mlx_ptr, key_actions, None)
+win.mlx.mlx_loop(win.mlx_ptr)

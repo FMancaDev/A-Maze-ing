@@ -26,7 +26,7 @@ install:
 run:
 	@if [ ! -f "$(PYTHON)" ]; then echo "$(RED)Error: Run 'make install' first$(RESET)"; exit 1; fi
 	@$(PYTHON) $(MAIN) $(CONFIG)
-	@$(PYTHON) main.py $(CONFIG)
+	@$(PYTHON) a_maze_ing.py $(CONFIG)
 
 debug:
 	$(PYTHON) -m pdb $(MAIN) $(CONFIG)
