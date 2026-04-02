@@ -3,6 +3,7 @@ from .Renderer import Renderer
 from . Window import Window
 from typing import Any, Optional, Callable, Generator
 import sys
+import os
 from time import perf_counter
 from dataclasses import dataclass
 import random as rd
@@ -149,6 +150,35 @@ def change_maze(current: CurrentState) -> CurrentState:
     if now - current.last_change < current.rerender_delay:
         return current
     current.last_rerender = now
+
+    en_x, en_y = current.entry
+    ex_x, ex_y = current.exit
+
+    new_en_x = min(en_x, current.w - 1)
+    new_en_y = min(en_y, current.h - 1)
+    current.entry = (new_en_x, new_en_y)
+
+    new_ex_x = min(ex_x, current.w - 1)
+    new_ex_y = min(ex_y, current.h - 1)
+    current.exit = (new_ex_x, new_ex_y)
+
+    if current.entry == current.exit:
+        current = reset_entry_exit(current)
+
+    logo_cells = get_logo_coords(current.w, current.h)
+
+    red = "\033[0;31m"
+    reset = "\033[0m"
+
+    if current.entry in logo_cells:
+        print(f"{red}\nError: Entry {current.entry} hit '42' logo during resize to {current.w}x{current.h}{reset}")
+        os._exit(0)
+
+    if current.exit in logo_cells:
+        print(f"{red}\nError: EXIT {current.exit} hit '42' logo during resize to {current.w}x{current.h}{reset}")
+        os._exit(0)
+
+
     current.maze = MazeGenerator(current.w, current.h,
                                  current.entry, current.exit,
                                  rd.randint(0, 999999))
