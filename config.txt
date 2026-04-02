@@ -1,8 +1,8 @@
 # Maze Configuration
-WIDTH=20
-HEIGHT=20
+WIDTH=5
+HEIGHT=5
 ENTRY=0,0
-EXIT=19,19
+EXIT=4,4
 OUTPUT_FILE=maze.txt
 PERFECT=True
 GEN_ALGO=backtracking
