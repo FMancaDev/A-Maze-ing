@@ -39,6 +39,20 @@ The `Generator` is the core of the project, responsible for the mathematical cre
 * **Matrix Representation:** The maze is stored as a 2D grid where each cell is a 4-bit integer. Each bit represents a wall (North, South, East, West).
 * **Hexadecimal Export:** The generator converts these bitmask values into a hexadecimal string, following the project's specific output format.
 * **Solver:** It includes a pathfinding logic that calculates the unique solution from the entry point to the exit point, which is then used by the renderer to display the solution path.
+<tr>
+    <td><b><code>generator.py</code></b></td>
+    <td>
+        | <code>MazeGenerator</code> is the core engine of the project.
+        It manages the maze's lifecycle from initialization to file export.
+        It stores the maze as a 1D list (optimized for performance) and uses
+        bitwise operations (<code>1, 2, 4, 8</code>) to represent walls in each cell.
+        <br><br>
+        <b>Key features include:</b><br>
+        • <b>Algorithm Selection:</b> Supports both <code>Iterative DFS (Backtracking)</code> and <code>Randomized Prim's</code>.<br>
+        • <b>Logo Integration:</b> Dynamically calculates the "42" logo's position and seals it.<br>
+        • <b>Imperfect Mode:</b> Removes extra walls to create loops.
+    </td>
+</tr>
 
 
 ### Rendering
@@ -66,22 +80,6 @@ The `Generator` is the core of the project, responsible for the mathematical cre
 The <code>a_maze_ing.py</code> file starts off by parsing the configuration file and then feeding those inputs to our <code>MazeGenerator</code>, while also instantiating <code>Window</code> and <code>Renderer</code>. <code>key_actions()</code> is later hooked to the event loop started at the end of this file so that, at each frame, the program will check wether a given key was pressed or released and act accordingly by calling the respective function at <code>utils.py</code>.
 <br>The loop is then started, waiting for the <code>quit_prg()</code> function to eventually be called.
 
-
-### Generator
-<tr>
-    <td><b>generator.py</b></td>
-    <td>
-        <code>MazeGenerator</code> is the core engine of the project.
-        It manages the maze's lifecycle from initialization to file export.
-        It stores the maze as a 1D list (optimized for performance) and uses
-        bitwise operations (<code>1, 2, 4, 8</code>) to represent walls in each cell.
-        <br><br>
-        <b>Key features include:</b><br>
-        • <b>Algorithm Selection:</b> Supports both <code>Iterative DFS (Backtracking)</code> and <code>Randomized Prim's</code>.<br>
-        • <b>Logo Integration:</b> Dynamically calculates the "42" logo's position and seals it.<br>
-        • <b>Imperfect Mode:</b> Removes extra walls to create loops.
-    </td>
-</tr>
 
 ## Instructions
 
