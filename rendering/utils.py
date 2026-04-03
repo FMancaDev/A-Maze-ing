@@ -260,7 +260,7 @@ def get_logo_coords(w: int, h: int) -> list[tuple[int, int]]:
     for index_y, row in enumerate(pattern):
         for index_x, c in enumerate(row):
             if c == "X":
-                x, y = start_x + index_x, start_y + index_x
+                x, y = start_x + index_x, start_y + index_y
                 if 0 <= x < w and 0 <= y < h:
                     coords.append((x, y))
     return coords
