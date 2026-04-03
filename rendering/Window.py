@@ -1,4 +1,4 @@
-from mlx import Mlx
+from mlx import Mlx  # type: ignore
 from ctypes import c_void_p, c_uint
 from typing import Any
 import os
@@ -38,7 +38,7 @@ class Window():
                 case 'name':
                     print('[ERROR]: Wrong name type entered.')
                     print('name set to "A_Maze_Ing"')
-                    self.name: str = "A_Maze_Ing"
+                    self.name = "A_Maze_Ing"
 
         self.win_ptr: c_void_p = self.mlx.mlx_new_window(
             self.mlx_ptr,
@@ -52,7 +52,7 @@ class Window():
                 pass
 
         self.should_quit: bool = False
-        self.keys_pressed: dict[str, bool] = {}
+        self.keys_pressed: dict[int, bool] = {}
         self.mlx.mlx_hook(self.win_ptr, 2, 1, self.on_keypress, None)
         self.mlx.mlx_hook(self.win_ptr, 3, 2, self.on_release, None)
         self.mlx.mlx_hook(self.win_ptr, 33, 0, self.quit_prg, None)
