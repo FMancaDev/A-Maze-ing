@@ -1,15 +1,14 @@
-from mazegen.generator import MazeGenerator
 from .Renderer import Renderer
-from . Window import Window
-from typing import Any, Optional, Callable, Generator
+from .Window import Window
+from mazegen.generator import MazeGenerator
+from typing import Any, Optional, Generator, cast
 import sys
 import os
 from time import perf_counter
 from dataclasses import dataclass
 import random as rd
 
-
-maze_themes: dict[str, list[int, int, int]] = {
+maze_themes: dict[str, list[int]] = {
     'Los Angeles': [0xFF9933FF, 0xFFFFCC00, 0xFF33CCFF],
     'City Pop': [0xFFFF0066, 0xFF00FFEA, 0xFFFFFF66],
     'Pastel': [0xFF7E8F6A, 0xFFE9A1F2, 0xFFF2C2A1],
@@ -41,15 +40,16 @@ class CurrentState:
     exit: tuple[int, int]
     maze_type: str
     algo: str
-    img_stack: dict[str, dict[str, dict]]
+    img_stack: dict[str, Any]
     theme_names: list[str]
-    theme_index: int
-    active_theme: dict[str, Any]
-    last_change: float
+    starter_frame: Optional[dict[str, Any]] = None
+    theme_index: int = 0
+    active_theme: Optional[dict[str, Any]] = None
+    last_change: Optional[float] = None
     algo_gen: Optional[Generator] = None
     algo_anim: bool = True
     base_img: bool = False
-    logo: tuple | None = None
+    logo: Optional[tuple] = None
     rerender_delay: float = 0.2
     last_rerender: float = 0
     animating: bool = False
@@ -60,22 +60,23 @@ class CurrentState:
 
 def starter(current: CurrentState, gen_speed: float = 0.0,
             path_speed: float = 0.0) -> CurrentState:
-    """loads all the needed frames and starts by animating the wall breaks"""
+    win = current.win
+    render = current.render
+    maze = current.maze
+    theme_names = current.theme_names
+    theme_index = current.theme_index
 
-    win: Window = current.win
-    render: Renderer = current.render
-    maze: MazeGenerator = current.maze
-    theme_names: list[str] = current.theme_names
-    theme_index: int = current.theme_index
-    bg_color: int = maze_themes[theme_names[theme_index]][0]
-    fg_color: int = maze_themes[theme_names[theme_index]][1]
-    path_color: int = maze_themes[theme_names[theme_index]][2]
+    bg_color = maze_themes[theme_names[theme_index]][0]
+    fg_color = maze_themes[theme_names[theme_index]][1]
+    path_color = maze_themes[theme_names[theme_index]][2]
 
-    # geracao
-    current.algo_gen = maze.generate(perfect=current.maze_type,
+    current.algo_gen = maze.generate(perfect=(current.maze_type == "perfect"),
                                      method=current.algo)
-    next(current.algo_gen)
-    frame: dict[str, Any] = win.create_img()
+
+    if current.algo_gen:
+        next(current.algo_gen)
+
+    frame = win.create_img()
     render.draw_maze(maze, frame, fg_color=fg_color,
                      bg_color=bg_color, generation=True)
     current.starter_frame = frame
@@ -86,36 +87,33 @@ def starter(current: CurrentState, gen_speed: float = 0.0,
 
     current.img_stack = load_themes(maze, render, win, maze_themes)
     current.active_theme = current.img_stack[theme_names[theme_index]]
-    bg: dict[str, Any] = win.create_copy(current.active_theme['bg'])
-    path_frames: list = [bg]
 
-    for path_frame in render.draw_path(maze, win, bg, fg_color, path_color):
-        path_frames.append(path_frame)
-    current.active_theme['path'] = path_frames
+    # Check if active_theme is not None for MyPy
+    if current.active_theme:
+        bg = win.create_copy(current.active_theme['bg'])
+        path_frames: list[dict[str, Any]] = [bg]
+
+        for path_frame in render.draw_path(maze, win, bg,
+                                           fg_color, path_color):
+            path_frames.append(path_frame)
+
+        current.active_theme['path'] = path_frames
+
     current.frame_index = 0
-
     current.algo_anim = True
     current.base_img = False
     return current
 
 
 def print_menu(current: CurrentState) -> None:
-    theme_names: list[str] = current.theme_names
-    theme_index: int = current.theme_index
+    theme_names = current.theme_names
+    theme_index = current.theme_index
 
-    # cores
-    theme_color_code: str = argb_to_ansi(
-        maze_themes[theme_names[theme_index]][0]
-    )
-    reset: str = '\x1b[0m'
-    green: str = '\x1b[32m'
-    yellow: str = '\x1b[33m'
-    cyan: str = '\x1b[36m'
+    theme_color_code = argb_to_ansi(maze_themes[theme_names[theme_index]][0])
+    reset, green, yellow, cyan = '\x1b[0m', '\x1b[32m', '\x1b[33m', '\x1b[36m'
 
-    seed_val = f"{current.maze.seed}"
-    theme_val = f"{theme_names[theme_index]}"
-    size_val = f"{current.w}x{current.h}"
-    algo_val = f"{current.algo}"
+    seed_val, theme_val = str(current.maze.seed), theme_names[theme_index]
+    size_val, algo_val = f"{current.w}x{current.h}", current.algo
 
     seed_line = f"{yellow}Seed:{reset}    {seed_val:<28}"
     theme_line = (f"{yellow}Theme:{reset}   " +
@@ -125,7 +123,7 @@ def print_menu(current: CurrentState) -> None:
 
     print(f"""
 {cyan}╔══════════════════════════════════════╗
-║           A-MAZE-ING MENU            ║
+║            A-MAZE-ING MENU           ║
 ╠══════════════════════════════════════╣
 ║ {seed_line}{cyan}║
 ║ {theme_line}{cyan} ║
@@ -144,116 +142,78 @@ def print_menu(current: CurrentState) -> None:
 
 
 def change_maze(current: CurrentState) -> CurrentState:
-    """will randomly generate a new maze following active sizes"""
-
-    now: float = perf_counter()
-    if now - current.last_change < current.rerender_delay:
+    now = perf_counter()
+    if current.last_rerender != 0 and now - (current.last_rerender <
+                                             current.rerender_delay):
         return current
     current.last_rerender = now
 
     en_x, en_y = current.entry
     ex_x, ex_y = current.exit
 
-    new_en_x = min(en_x, current.w - 1)
-    new_en_y = min(en_y, current.h - 1)
-    current.entry = (new_en_x, new_en_y)
-
-    new_ex_x = min(ex_x, current.w - 1)
-    new_ex_y = min(ex_y, current.h - 1)
-    current.exit = (new_ex_x, new_ex_y)
+    current.entry = (min(en_x, current.w - 1), min(en_y, current.h - 1))
+    current.exit = (min(ex_x, current.w - 1), min(ex_y, current.h - 1))
 
     if current.entry == current.exit:
         current = reset_entry_exit(current)
 
     logo_cells = get_logo_coords(current.w, current.h)
 
-    red = "\033[0;31m"
-    reset = "\033[0m"
-
-    if current.entry in logo_cells:
-        print(f"{red}\nError: Entry {current.entry} hit '42' logo during resize to {current.w}x{current.h}{reset}")
+    if current.entry in logo_cells or current.exit in logo_cells:
+        print("\033[0;31m\nError: Entry/Exit hit logo during resize\033[0m")
         os._exit(0)
 
-    if current.exit in logo_cells:
-        print(f"{red}\nError: EXIT {current.exit} hit '42' logo during resize to {current.w}x{current.h}{reset}")
-        os._exit(0)
+    current.maze = MazeGenerator(
+        current.w, current.h, current.entry, current.exit)
 
-
-    current.maze = MazeGenerator(current.w, current.h,
-                                 current.entry, current.exit,
-                                 rd.randint(0, 999999))
     current = starter(current)
     print_menu(current)
     return current
 
 
 def reset_entry_exit(current: CurrentState) -> CurrentState:
-    """resets entry/ exit points"""
-    available_coor = []
-    for y in range(current.h):
-        for x in range(current.w):
-            available_coor.append((x, y))
-    available_coor = [x for x in available_coor if
-                      x not in current.maze.logo_cells]
+    available_coor = [(x, y) for y in range(current.h)
+                      for x in range(current.w)]
+    available_coor = [
+        c for c in available_coor if c not in current.maze.logo_cells]
     current.entry = rd.choice(available_coor)
-    available_coor = [x for x in available_coor if x != current.entry]
+    available_coor = [c for c in available_coor if c != current.entry]
     current.exit = rd.choice(available_coor)
     return current
 
 
-def load_themes(maze: MazeGenerator,
-                render: Renderer,
-                win: Window,
-                maze_themes: dict[str, list[int, int, int]] =
-                maze_themes) -> dict[str, dict]:
-    img_stack: dict[str, dict] = {}
-    for name, colors in maze_themes.items():
-        bg: dict[str, Any] = win.create_img()
+def load_themes(maze: MazeGenerator, render: Renderer, win: Window,
+                themes: dict[str, list[int]] = maze_themes) -> dict[str, Any]:
+    img_stack: dict[str, Any] = {}
+    for name, colors in themes.items():
+        bg = win.create_img()
         render.fill_rect((0, 0), (win.width, win.height), colors[0], bg)
         render.draw_maze(maze, bg, colors[1], colors[0])
         img_stack[name] = {'bg': bg}
-
     return img_stack
 
 
-def switch_theme(current: CurrentState,
-                 reverse: bool = False) -> CurrentState:
-    """Will circle between themes"""
-    now: float = perf_counter()
+def switch_theme(current: CurrentState, reverse: bool = False) -> CurrentState:
+    now = perf_counter()
     if now - current.last_rerender < current.rerender_delay:
         return current
     current.last_rerender = now
 
-    theme_names: list[str] = current.theme_names
-    theme_index: int = current.theme_index
-    img_stack: dict = current.img_stack
-
-    if reverse:
-        current.theme_index = (theme_index - 1) % len(theme_names)
-    else:
-        current.theme_index = (theme_index + 1) % len(theme_names)
-
-    current.active_theme = img_stack[theme_names[current.theme_index]]
+    idx_mod = -1 if reverse else 1
+    current.theme_index = (current.theme_index +
+                           idx_mod) % len(current.theme_names)
+    current.active_theme = (current.img_stack[current.theme_names
+                            [current.theme_index]])
     current.logo = put_logo(current)
     print_menu(current)
     return current
 
 
-# =================================
-
-
 def get_logo_coords(w: int, h: int) -> list[tuple[int, int]]:
-    """make sure entry and exit is not on top of logo"""
     if w < 10 or h < 8:
         return []
     atual_x, atual_y = w // 2, h // 2
-    pattern = [
-        "X X XXX",
-        "X X   X",
-        "XXX XXX",
-        "  X X  ",
-        "  X XXX",
-    ]
+    pattern = ["X X XXX", "X X   X", "XXX XXX", "  X X  ", "  X XXX"]
     coords = []
     start_x = atual_x - len(pattern[0]) // 2
     start_y = atual_y - len(pattern) // 2
@@ -265,213 +225,140 @@ def get_logo_coords(w: int, h: int) -> list[tuple[int, int]]:
                     coords.append((x, y))
     return coords
 
-def parse_config(filename) -> tuple:
-    """Parses and validates the maze configuration file robustly"""
 
-    conf = {}
+def parse_config(filename: str) -> (tuple[int, int, tuple[int, int],
+                                    tuple[int, int], str, bool, str]):
+    conf: dict[str, Any] = {}
     required = ["WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT"]
 
-    try:
-        with open(filename, "r") as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                k, v = [x.strip() for x in line.split("=", 1)]
-                if k in conf:
-                    sys.exit(f"\nError: Duplicate key '{k}'")
-                conf[k] = v
+    with open(filename, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = [x.strip() for x in line.split("=", 1)]
+            conf[k] = v
 
-        for r in required:
-            if r not in conf:
-                sys.exit(f"\nError: Missing mandatory key '{r}'")
+    for r in required:
+        if r not in conf:
+            sys.exit(f"Missing {r}")
 
-        # Validacao de WIDTH e HEIGHT
-        try:
-            w = int(conf["WIDTH"])
-            h = int(conf["HEIGHT"])
-        except ValueError:
-            sys.exit("\nError: WIDTH and HEIGHT must be integers")
+    w, h = int(conf["WIDTH"]), int(conf["HEIGHT"])
+    en = tuple(int(x) for x in conf["ENTRY"].split(","))
+    ex = tuple(int(x) for x in conf["EXIT"].split(","))
 
-        if w < 1 or h < 1:
-            sys.exit("\nError: WIDTH and HEIGHT must be positive integers")
-        elif w < 3 or h < 3:
-            sys.exit("\nError: Minimum dimensions are 3x3")
+    # Cast para garantir o tipo da tupla para o MyPy
+    entry_tpl = cast(tuple[int, int], tuple(en))
+    exit_tpl = cast(tuple[int, int], tuple(ex))
 
-        # Validacao de ENTRY e EXIT
-        for key_name in ["ENTRY", "EXIT"]:
-            parts = conf[key_name].split(",")
-            if len(parts) != 2:
-                sys.exit(f"\nError: {key_name} must have exactly X,Y")
-            try:
-                coords = tuple(int(x.strip()) for x in parts)
-            except ValueError:
-                sys.exit(f"\nError: {key_name} coordinates must be integers")
-            conf[key_name] = coords
+    perfect = conf["PERFECT"].lower() == "true"
+    gen_algo = conf.get("GEN_ALGO", "backtracking").strip().lower()
 
-        en = conf["ENTRY"]
-        ex = conf["EXIT"]
-
-        for coord, name in [(en, "ENTRY"), (ex, "EXIT")]:
-            if not (0 <= coord[0] < w and 0 <= coord[1] < h):
-                sys.exit(
-                    f"\nError: {name} {coord} is outside maze bounds ({w}x{h})"
-                )
-        if en == ex:
-            sys.exit("\nError: ENTRY and EXIT cannot be the same")
-
-        logo_cells = get_logo_coords(w, h)
-        if en in logo_cells:
-            sys.exit(f"\nError: ENTRY {en} is on top of '42' logo")
-        if ex in logo_cells:
-            sys.exit(f"\nError: EXIT {ex} is on top of '42' logo")
-
-        perfect_val = conf["PERFECT"].strip().lower()
-        if perfect_val not in ["true", "false"]:
-            sys.exit("\nError: PERFECT must be True or False")
-        perfect = (perfect_val == "true")
-
-        gen_algo = conf.get("GEN_ALGO", "backtracking").strip().lower()
-
-        return w, h, en, ex, conf["OUTPUT_FILE"], perfect, gen_algo
-
-    except Exception as e:
-        sys.exit(f"\nConfig Error: {e}")
+    return w, h, entry_tpl, exit_tpl, conf["OUTPUT_FILE"], perfect, gen_algo
 
 
 def put_logo(current: CurrentState) -> Optional[tuple]:
-    render: Renderer = current.render
-    win: Window = current.win
-    theme_names: list[str] = current.theme_names
-    theme_index: int = current.theme_index
+    render, win = current.render, current.win
     if not render.logo_area:
         return None
-    theme_name: str = 'rendering/logo/' + theme_names[theme_index].lower()
-    if render.logo_size == 'small':
-        return win.mlx.mlx_xpm_file_to_image(win.mlx_ptr,
-                                             (f'{theme_name}_small.xpm'))
-    if render.logo_size == 'medium':
-        return win.mlx.mlx_xpm_file_to_image(win.mlx_ptr,
-                                             (f'{theme_name}_medium.xpm'))
-    if render.logo_size == 'big':
-        return win.mlx.mlx_xpm_file_to_image(win.mlx_ptr,
-                                             (f'{theme_name}_big.xpm'))
+
+    path = f'rendering/logo/{current.theme_names[current.theme_index].lower()}'
+    size = render.logo_size
+    return win.mlx.mlx_xpm_file_to_image(win.mlx_ptr, f'{path}_{size}.xpm')
 
 
 def show_img(current: CurrentState, overlay: bool = False) -> None:
+    if not current.active_theme:
+        return
 
-    active_theme: dict[str, Any] = current.active_theme
-    theme_names: list[str] = current.theme_names
-    theme_index: int = current.theme_index
-    render: Renderer = current.render
-    maze: MazeGenerator = current.maze
-    win: Window = current.win
-    bg_color: int = maze_themes[theme_names[theme_index]][0]
-    fg_color: int = maze_themes[theme_names[theme_index]][1]
-    path_color: int = maze_themes[theme_names[theme_index]][2]
+    active_theme = current.active_theme
+    render, win, maze = current.render, current.win, current.maze
+    theme_colors = maze_themes[current.theme_names[current.theme_index]]
+    bg_color, fg_color, path_color = (theme_colors[0],
+                                      theme_colors[1], theme_colors[2])
 
-    now: float = perf_counter()
+    now = perf_counter()
     if now - current.last_frame_change < current.frame_delay:
         return
     current.last_frame_change = now
 
     if current.algo_anim:
-        try:
-            runner = current.algo_gen
-            frame = current.starter_frame
-            cell = next(runner)
-            render.draw_maze(maze, frame, fg_color, bg_color, True)
-            cs = render.cell_size
-            tlx, tly = render.coor['tl']
-            cx = cell[0] * cs + tlx
-            cy = cell[1] * cs + tly
-
-            render.fill_rect((cx + 2, cy + 2),
-                             (cx + cs - 2, cy + cs - 2),
-                             path_color, frame)
-            win.mlx.mlx_put_image_to_window(win.mlx_ptr,
-                                            win.win_ptr,
-                                            frame['ptr'], 0, 0)
-            current.starter_frame = frame
-        except StopIteration:
-            current.algo_anim = False
-
-            import __main__
-            if hasattr(__main__, 'save_maze_now') and hasattr(__main__, 'output_file'):
-                __main__.save_maze_now(current, __main__.output_file)
+        if current.algo_gen and current.starter_frame:
+            try:
+                cell = next(current.algo_gen)
+                frame = current.starter_frame
+                render.draw_maze(maze, frame, fg_color, bg_color, True)
+                cs = render.cell_size
+                tlx, tly = render.coor['tl']
+                cx, cy = cell[0] * cs + tlx, cell[1] * cs + tly
+                render.fill_rect((cx + 2, cy + 2),
+                                 (cx + cs - 2, cy + cs - 2), path_color, frame)
+                win.mlx.mlx_put_image_to_window(
+                    win.mlx_ptr, win.win_ptr, frame['ptr'], 0, 0)
+            except StopIteration:
+                current.algo_anim = False
+                import __main__
+                if hasattr(__main__, 'save_maze_now'):
+                    getattr(__main__, 'save_maze_now')(
+                        current, getattr(__main__, 'output_file', 'out.png'))
 
     elif not current.base_img:
-        if current.algo_gen:
-            for _ in current.algo_gen:
-                pass
         current.base_img = True
-        current.img_stack = load_themes(maze, render, win, maze_themes)
-        current.active_theme = current.img_stack[theme_names[theme_index]]
-        bg: dict[str, Any] = win.create_copy(current.active_theme['bg'])
-        path_frames: list = [bg]
-
-        for path_frame in render.draw_path(maze, win,
-                                           bg, fg_color,
-                                           path_color):
-            path_frames.append(path_frame)
-        current.active_theme['path'] = path_frames
+        current.img_stack = load_themes(maze, render, win)
+        current.active_theme = (current.img_stack[current.theme_names
+                                [current.theme_index]])
+        # Recarregar referência após update
+        active_theme = current.active_theme
+        bg = win.create_copy(active_theme['bg'])
+        path_frames: list[dict[str, Any]] = []
+        path_frames.append(bg)
+        for p_frame in render.draw_path(maze, win, bg, fg_color, path_color):
+            if p_frame is not None:
+                path_frames.append(p_frame)
+        active_theme['path'] = path_frames
         current.frame_index = 0
 
     elif overlay:
         if not active_theme.get('path'):
-            path: list = []
-            bg: dict[str, Any] = current.win.create_copy(active_theme['bg'])
-            generator: Callable = current.render.draw_path
-            path.append(bg)
-            for frame in generator(maze, win, bg, fg_color, path_color):
-                bg = win.create_copy(frame)
-                path.append(frame)
-            current.active_theme['path'] = path
-            active_theme = current.active_theme
+            bg_copy = win.create_copy(active_theme['bg'])
+            path_list = [bg_copy]
+            for f in render.draw_path(maze, win, bg_copy,
+                                      fg_color, path_color):
+                path_list.append(f)
+            active_theme['path'] = path_list
 
-        frames = active_theme.get('path')
+        frames = active_theme['path']
         current.animating = True
         current_frame = frames[current.frame_index]
         if current.frame_index < len(frames) - 1:
             current.frame_index += 1
-        win.mlx.mlx_put_image_to_window(win.mlx_ptr,
-                                        win.win_ptr,
-                                        current_frame['ptr'],
-                                        0, 0)
+        win.mlx.mlx_put_image_to_window(
+            win.mlx_ptr, win.win_ptr, current_frame['ptr'], 0, 0)
+
     else:
-        if current.animating:
-            if current.frame_index == 0:
-                current.animating = False
-        if current.animating and current.active_theme.get('path'):
-            current_frame = current.active_theme['path'][current.frame_index]
+        if current.animating and current.frame_index == 0:
+            current.animating = False
+
+        tmp: None | Any = active_theme.get('path')
+        if tmp:
+            path_frames = tmp
+        # path_frames = active_theme.get('path')
+        if current.animating and path_frames:
+            current_frame = path_frames[current.frame_index]
             current.frame_index -= 1 if current.frame_index > 0 else 0
-            win.mlx.mlx_put_image_to_window(win.mlx_ptr,
-                                            win.win_ptr,
-                                            current_frame['ptr'],
-                                            0, 0)
+            win.mlx.mlx_put_image_to_window(
+                win.mlx_ptr, win.win_ptr, current_frame['ptr'], 0, 0)
         else:
-            win.mlx.mlx_put_image_to_window(win.mlx_ptr,
-                                            win.win_ptr,
-                                            active_theme['bg']['ptr'],
-                                            0, 0)
-    if current.render.logo_area:
-        if not current.logo:
-            current.logo = put_logo(current)
-        logo_ptr, logo_width, logo_height = current.logo
-        win.mlx.mlx_put_image_to_window(win.mlx_ptr,
-                                        win.win_ptr,
-                                        logo_ptr,
-                                        (win.width - logo_width) // 2,
-                                        current.render.margin_tb)
+            win.mlx.mlx_put_image_to_window(
+                win.mlx_ptr, win.win_ptr, active_theme['bg']['ptr'], 0, 0)
+
+    if render.logo_area and current.logo:
+        logo_ptr, logo_w, _ = current.logo
+        win.mlx.mlx_put_image_to_window(
+            win.mlx_ptr, win.win_ptr, logo_ptr, (win.width - logo_w) // 2,
+            render.margin_tb)
 
 
 def welcome_message(current: CurrentState) -> None:
-    print("""
- █████╗       ███╗   ███╗ █████╗ ███████╗███████╗    ██╗███╗   ██╗ ██████╗
-██╔══██╗      ████╗ ████║██╔══██╗╚══███╔╝██╔════╝    ██║████╗  ██║██╔════╝
-███████║█████╗██╔████╔██║███████║  ███╔╝ █████╗█████╗██║██╔██╗ ██║██║  ███╗
-██╔══██║╚════╝██║╚██╔╝██║██╔══██║ ███╔╝  ██╔══╝╚════╝██║██║╚██╗██║██║   ██║
-██║  ██║      ██║ ╚═╝ ██║██║  ██║███████╗███████╗    ██║██║ ╚████║╚██████╔╝
-╚═╝  ╚═╝      ╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝    ╚═╝╚═╝  ╚═══╝ ╚═════╝
-""")
+    print("\n A-MAZE-ING GENERATOR LOADED \n")
     print_menu(current)

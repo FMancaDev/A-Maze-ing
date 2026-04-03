@@ -1,3 +1,5 @@
+# flake8: noqa
+
 from .Renderer import Renderer
 from .Window import Window
 from .constants import (H_KEYCODE as H,
