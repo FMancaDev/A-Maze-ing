@@ -1,3 +1,5 @@
+from typing import Any
+
 C_KEYCODE: int = 99
 D_KEYCODE: int = 100
 H_KEYCODE: int = 104
@@ -10,7 +12,7 @@ DOWN_ARROW_KEYCODE: int = 65364
 R_KEYCODE: int = 114
 
 
-DEC_TO_WALLS: dict[str, int] = {
+DEC_TO_WALLS: dict[int, None | Any] = {
     0: None,
     1: ('N'),
     2: ('E'),
