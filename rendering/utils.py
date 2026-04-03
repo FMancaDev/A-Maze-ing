@@ -106,10 +106,12 @@ def starter(current: CurrentState, gen_speed: float = 0.0,
 
 
 def print_menu(current: CurrentState) -> None:
-    theme_names = current.theme_names
+    theme_names = list(maze_themes.keys())
     theme_index = current.theme_index
 
-    theme_color_code = argb_to_ansi(maze_themes[theme_names[theme_index]][0])
+    current_theme_name = theme_names[theme_index]
+
+    theme_color_code = argb_to_ansi(maze_themes[current_theme_name][0])
     reset, green, yellow, cyan = '\x1b[0m', '\x1b[32m', '\x1b[33m', '\x1b[36m'
 
     seed_val, theme_val = str(current.maze.seed), theme_names[theme_index]
