@@ -16,11 +16,10 @@ w: int
 h: int
 entry: tuple[int, int]
 exit: tuple[int, int]
-maze_type: str
+maze_type: bool
 algo: str
-w, h, entry, exit, output_file, maze_type, algo = (
-    rend.parse_config(sys.argv[1])
-)
+w, h, entry, exit, output_file, maze_type, algo = rend.parse_config(
+    sys.argv[1])
 seed: int = int(sys.argv[2] if len(sys.argv) == 3 else rand.randint(0, 999999))
 
 
@@ -40,15 +39,14 @@ maze = MazeGenerator(w, h, entry, exit, seed)
 theme_names: list[str] = list(rend.maze_themes.keys())
 theme_index: int = 0
 last_change: float = 0
-img_stack: dict = {}
-active_theme: dict = {}
+img_stack: dict[str, dict[str, Any]] = {}
+active_theme: dict[str, Any] = {}
 current = rend.CurrentState(win, render, maze, w, h, entry, exit,
                             maze_type, algo, img_stack, theme_names,
                             theme_index, active_theme, last_change)
 
 rend.welcome_message(current)
 current = rend.starter(current)
-
 
 # ============= Functions =============
 
