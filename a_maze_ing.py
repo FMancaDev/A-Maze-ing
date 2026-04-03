@@ -18,7 +18,9 @@ entry: tuple[int, int]
 exit: tuple[int, int]
 maze_type: str
 algo: str
-w, h, entry, exit, output_file, maze_type, algo = rend.parse_config(sys.argv[1])
+w, h, entry, exit, output_file, maze_type, algo = (
+    rend.parse_config(sys.argv[1])
+)
 seed: int = int(sys.argv[2] if len(sys.argv) == 3 else rand.randint(0, 999999))
 
 
@@ -47,7 +49,9 @@ current = rend.CurrentState(win, render, maze, w, h, entry, exit,
 rend.welcome_message(current)
 current = rend.starter(current)
 
+
 # ============= Functions =============
+
 
 def key_actions(param: Any) -> None:
     """base function for key events"""

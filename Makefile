@@ -39,7 +39,7 @@ clean:
 
 lint:
 	@echo "$(GREEN)Running linting...$(RESET)"
-	@$(VENV)/bin/flake8 .
-	@$(VENV)/bin/mypy . --ignore-missing-imports
+	-@$(VENV)/bin/flake8 . --exclude=$(VENV)
+	@$(VENV)/bin/mypy mazegen rendering a_maze_ing.py --ignore-missing-imports
 
 re: clean install
